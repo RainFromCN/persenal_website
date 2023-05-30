@@ -1,0 +1,35 @@
+body {
+    margin-bottom: 50px;
+    background-color: #222222;
+}
+
+body header .title {
+    text-align:center;
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-size: 2em;
+    color:white;
+}
+
+body header .author {
+    text-align:center;
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    font-size: 1em;
+    color: gray;
+}
+
+body header .author a:link,
+body header .author a:visited {
+    color: white;
+}
+
+body header .author a:hover {
+    color: red;
+}
+
+main p {
+    margin-left: 20%;
+    margin-top: 5%;
+    width: 60%;
+    font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+    color: white;
+}

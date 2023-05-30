@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+
+{% load static %}
+
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width"/>
+        <title>毕设项目商店</title>
+        <link rel="stylesheet" href="{% static 'project/css/index.css' %}"/>
+        <style>
+            a {
+                text-decoration: none;
+            }
+        </style>
+    </head>
+
+    <body>
+        <header>
+            <h1>毕设项目商店</h1>
+        </header>
+
+        <nav>
+            <a href="{% url 'blog:index' %}">博客主页</a>
+            <a href="{% url 'project:index' %}">毕设项目商店</a>
+        </nav>
+
+        <main>
+        </main>
+    </body>
+</html>

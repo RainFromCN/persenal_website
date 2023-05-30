@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+
+{% load static %}
+
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width"/>
+        <title>{{blog.title}}</title>
+        <link rel="stylesheet" href="{% static 'blog/css/detail.css' %}"/>
+        <style>
+            a {
+                text-decoration: none;
+            }
+        </style>
+    </head>
+
+    <body>
+        <header>
+            <p class="title">{{blog.title}}</p>
+            <p class="author"><a href="#">{{blog.author}}</a> 于 {{blog.pub_date}} 发表</p>
+        </header>
+
+        <hr>
+
+        <main>
+            <p>{{blog.content}}</p>
+        </main>
+    </body>
+</html>

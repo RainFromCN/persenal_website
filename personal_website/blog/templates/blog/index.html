@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+
+{% load static %}
+
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width"/>
+        <title>李文昊的主页</title>
+        <link rel="stylesheet" href="{% static 'blog/css/index.css' %}"/>
+        <style>
+            a {
+                text-decoration: none;
+            }
+        </style>
+    </head>
+
+    <body>
+        <header>
+            <h1>博客主页</h1>
+        </header>
+
+        <nav>
+            <a href="{% url 'blog:index' %}">博客主页</a>
+            <a href="{% url 'project:index' %}">毕设项目商店</a>
+        </nav>
+
+        <main>
+            {% for blog in blogs %}
+            <a href="{% url 'blog:detail' blog.blog_id%}"><article>
+                <div class="title">{{blog.title}}</div>
+                <div class="author"><a href="#">{{blog.author}}</a> 于 {{blog.pub_date}} 发表</div>
+            </article></a>
+            {% endfor %}
+        </main>
+    </body>
+</html>
