@@ -9,8 +9,39 @@
         <title>Project with Paper & Tutorial</title>
         <link rel="stylesheet" href="{% static 'project/css/index.css' %}"/>
         <style>
+
             a {
                 text-decoration: none;
+            }
+
+            header p {
+                text-align: center;
+                color: white;
+                margin-top: 0;
+                padding-bottom: 10px;
+            }
+
+            header p a:link,
+            header p a:visited {
+                background-color: white;
+                padding: 2px 5px 2px 5px;
+                font-size: 0.5em;
+                color: black;
+                font-weight: bolder;
+                margin-left: 1%;
+                margin-right: 1%;
+                border-radius: 5px;
+            }
+
+            header p a:hover {
+                background-color: #bbbbbb;
+                padding: 2px 5px 2px 5px;
+                font-size: 0.5em;
+                color: black;
+                font-weight: bolder;
+                margin-left: 1%;
+                margin-right: 1%;   
+                border-radius: 5px;
             }
 
             main {
@@ -49,7 +80,7 @@
                 margin-left: 5%;
             }
 
-            .choice div a{
+            .choice div p {
                 color: black;
                 float: left;
                 font-size: 0.6em;
@@ -60,12 +91,45 @@
                 border-radius: 2px;
                 margin-right: 3%;
             }
+
+            .choice div a:link,
+            .choice div a:visited {
+                color: black;
+                float: left;
+                font-size: 0.6em;
+                font-weight: bolder;
+                border: 2px solid white;
+                padding: 3px 20px 3px 20px;
+                background-color: white;
+                border-radius: 2px;
+                margin-right: 3%;
+            }
+
+            .choice div a:hover {
+                color: black;
+                float: left;
+                font-size: 0.6em;
+                font-weight: bolder;
+                border: 2px solid #bbbbbb;  
+                padding: 3px 20px 3px 20px;
+                background-color: #bbbbbb;
+                border-radius: 2px;
+                margin-right: 3%;
+            }
         </style>
     </head>
 
     <body>
         <header>
-            <h1>Project with Paper & Tutorial</h1>
+            <h1>毕业🐍🐓一条龙</h1>
+            <p>
+                {% if User %}
+                    @{{User.name}}
+                {% else %}
+                    <a href="{% url 'project:login' %}">登录</a>
+                    <a href="{% url 'project:signup' %}">注册</a>
+                {% endif %}
+            </p>
         </header>
 
         <main>
@@ -83,11 +147,26 @@
                     <div class="introduction">
                         <a href="{% url 'project:introduction' project.prj_id%}">项目简介</a>
                     </div>
+                    <div class="code">
+                        {% if project.lock %}
+                        <a href="#">代码🔒</a>
+                        {% else %}
+                        <a href="#">代码✅</a>
+                        {% endif %}
+                    </div>
                     <div class="paper">
-                        <a href="{% url 'project:paper' project.prj_id %}">论文</a>
+                        {% if project.lock %}
+                        <a href="#">论文🔒</a>
+                        {% else %}
+                        <a href="{% url 'project:paper' project.prj_id %}">论文✅</a>
+                        {% endif %}
                     </div>
                     <div class="tutorial">
-                        <a href="{% url 'project:tutorial' project.prj_id %}">教程</a>
+                        {% if project.lock %}
+                        <a href="#">教程🔒</a>
+                        {% else %}
+                        <a href="{% url 'project:tutorial' project.prj_id %}">教程✅</a>
+                        {% endif %}
                     </div>
                 </div>
             </article>

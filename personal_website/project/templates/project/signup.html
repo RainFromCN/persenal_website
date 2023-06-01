@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+
+{% load static %}
+
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width"/>
+        <title>Sign Up</title>
+        <style>
+
+            body {
+                background-color: #222222;
+                color: white;
+            }
+
+            header {
+                text-align: center;
+                background-color: #555555;
+                width: 100%;
+                margin: 0;
+                padding-top: 3px;
+                padding-bottom: 3px;
+            }
+
+            form {
+                text-align: center;
+            }
+
+            main p {
+                text-align: center;
+            }
+
+            main p a:link,
+            main p a:visited {
+                text-align: center;
+                color: white;
+                font-size: 0.5em;
+            }
+
+            main p a:hover {
+                text-align: center;
+                color: goldenrod;
+                font-size: 0.5em;
+            }
+        </style>
+    </head>
+
+    <body>
+        <header>
+            <h1>新用户注册</h1>
+        </header>
+
+        <main>
+            {% if message %}
+                <p><strong>{{message}}</strong></p>
+            {% endif %}
+            <form action="{% url 'project:signup' %}" method="post">
+                {% csrf_token %}
+                <p>用户名：<input type="text" name="user_name"></p>
+                <p>密码：<input type="text" name="user_pw"></p>
+                <input type="submit", value="提交">
+            </form>
+            {% if success %}
+                <p><a href="{% url 'project:login' %}">跳转到登录页面</a></p>
+            {% endif %}
+        </main>
+    </body>
+</html>

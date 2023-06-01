@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+
+{% load static %}
+
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width"/>
+        <title>Login</title>
+        <style>
+
+            body {
+                background-color: #222222;
+                color: white;
+            }
+
+            header {
+                text-align: center;
+                background-color: #555555;
+                width: 100%;
+                margin: 0;
+                padding-top: 3px;
+                padding-bottom: 3px;
+            }
+
+            form {
+                text-align: center;
+            }
+        </style>
+    </head>
+
+    <body>
+        <header>
+            <h1>用户登录</h1>
+        </header>
+
+        <main>
+            <form action="{% url 'project:login' %}" method="post">
+                {% csrf_token %}
+                <p>用户名：<input type="text" name="username"></p>
+                <p>密码：<input type="text" name="password"></p>
+                <input type="submit", value="登录">
+            </form>
+        </main>
+    </body>
+</html>

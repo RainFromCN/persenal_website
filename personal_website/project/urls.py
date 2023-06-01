@@ -11,4 +11,6 @@ urlpatterns = [
     path("<int:prj_id>/paper/", views.paper, name='paper'),
     path("<int:prj_id>/tutorial/", views.tutorial, name='tutorial'),
     path("<int:prj_id>/image/<str:filename>", views.image, name='image'),
+    path("signup/", views.signup, name='signup'),
+    path("login/", views.login, name='login'),
 ]
