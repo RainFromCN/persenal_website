@@ -9,7 +9,7 @@ class User(models.Model):
     password = models.CharField(max_length=20)
 
     def __str__(self):
-        return f"{self.name}"
+        return f"[{self.user_id}]{self.name}"
 
 
 class Blog(models.Model):
@@ -21,4 +21,4 @@ class Blog(models.Model):
     priority = models.IntegerField()
 
     def __str__(self):
-        return f"{self.title}"
+        return f"[{self.blog_id}]{self.title}"
