@@ -151,7 +151,7 @@
                         {% if project.lock %}
                         <a href="#">代码🔒</a>
                         {% else %}
-                        <a href="#">代码✅</a>
+                        <a href="{% url 'project:code' project.prj_id %}">代码✅</a>
                         {% endif %}
                     </div>
                     <div class="paper">

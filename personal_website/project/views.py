@@ -1,11 +1,20 @@
 from django.shortcuts import render
-from django.http import HttpResponse, Http404, HttpResponseRedirect
-from django.urls import reverse
+from django.http import HttpResponse, Http404, StreamingHttpResponse
 from .models import User
 import os
 
 
 from .models import Project, User, Purchase
+
+
+def read_file(file_name, chunk_size=512):
+    with open(file_name, "rb") as f:
+        while True:
+            c = f.read(chunk_size)
+            if c:
+                yield c
+            else:
+                break
 
 
 # Create your views here.
@@ -29,6 +38,19 @@ def paper(request, prj_id):
 def tutorial(request, prj_id):
     project = Project.objects.filter(prj_id=prj_id)[0]
     return render(request, "project/tutorial.html", {'project': project})
+
+
+def code(request, prj_id):
+    path = os.path.join(os.path.dirname(__file__), 'static', 'project', 'code')
+    path = os.path.join(path, f"project{prj_id}.zip")
+
+    if os.path.exists(path):
+        response = StreamingHttpResponse(read_file(path))
+        response['Content-Type'] = "application/octet-stream"
+        response['Content-Disposition'] = f'attachment; filename=project{prj_id}.zip'
+        return response
+    else:
+        return Http404("code is not exist.")
 
 
 def image(request, prj_id: int, filename: str):
