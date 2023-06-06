@@ -11,9 +11,9 @@ class Project(models.Model):
     price = models.IntegerField(default=100)
 
     # 当前项目的简介，论文以及教程
-    introduction = models.TextField(max_length=4000, default='introduction')
-    paper = models.TextField(max_length=4000, default='paper')
-    tutorial = models.TextField(max_length=4000, default='tutorial')
+    introduction = models.TextField(default='introduction')
+    paper = models.TextField(default='paper')
+    tutorial = models.TextField(default='tutorial')
 
     def __str__(self):
         return f"[{self.prj_id}]{self.name}"
