@@ -90,9 +90,11 @@
             {% autoescape off %}
             {{project.introduction}}
             {% endautoescape off %}
-            <div class="费用">
-                购买全套代码+论文+教程<br>￥{{project.price}}
-            </div>
+            <a href="{% url 'project:image' project.prj_id 'image-0.png' %}">
+                <div class="费用">
+                    购买全套代码+论文+教程<br>￥{{project.price}}
+                </div>
+            </a>
         </main>
     </body>
 </html>
