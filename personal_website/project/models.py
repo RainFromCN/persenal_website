@@ -8,7 +8,7 @@ class Project(models.Model):
     prj_id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=200)
     pub_date = models.DateTimeField("data published", default=now())
-    price = models.IntegerField(default=100)
+    price = models.FloatField(default=9.9)
 
     # 当前项目的简介，论文以及教程
     introduction = models.TextField(default='introduction')
