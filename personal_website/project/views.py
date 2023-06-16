@@ -50,7 +50,7 @@ def tutorial(request, prj_id, chapter_id):
     chapter = chapters[chapter_id - 1]
 
     context = {'chapter': f"<h2>{chapter}", 'num_chapters': num_chapters, 'project': project}
-    if len(chapters) > chapter_id - 1:
+    if len(chapters) > chapter_id:
         context['next_chapter_id'] = chapter_id + 1
     
     return render(request, "project/tutorial.html", context)
