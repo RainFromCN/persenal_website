@@ -21,7 +21,7 @@ def read_file(file_name, chunk_size=512):
 def index(request):
     projects = Project.objects.all()
     for project in projects:
-        project.lock = True
+        project.lock = True if project.price > 0 else False
     return render(request, "project/index.html", {'projects': projects})
 
 
@@ -125,11 +125,10 @@ def login(request):
         
         projects = Project.objects.all()
         for project in projects:
-            if Purchase.objects.filter(user=user, project=project).count() == 0:
+            if Purchase.objects.filter(user=user, project=project).count() == 0 and project.price > 0:
                 project.lock = True
             else:
                 project.lock = False
-        projects = sorted(projects, key=lambda x: x.lock)
         user.login_times += 1
         user.save()
         

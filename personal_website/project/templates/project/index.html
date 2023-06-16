@@ -121,7 +121,7 @@
 
     <body>
         <header>
-            <h1>毕业🐍🐓一条龙</h1>
+            <h1>(ง •_•)ง  AI项目教程</h1>
             <p>
                 {% if User %}
                     @{{User.name}}
@@ -154,13 +154,13 @@
                         <a href="{% url 'project:code' project.prj_id %}">代码✅</a>
                         {% endif %}
                     </div>
-                    <div class="paper">
+                    <!-- <div class="paper">
                         {% if project.lock %}
                         <a href="#">论文(请先购买)</a>
                         {% else %}
                         <a href="{% url 'project:paper' project.prj_id %}">论文✅</a>
                         {% endif %}
-                    </div>
+                    </div> -->
                     <div class="tutorial">
                         {% if project.lock %}
                         <a href="#">教程(请先购买)</a>
