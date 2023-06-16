@@ -27,20 +27,40 @@ def index(request):
 
 def introduction(request, prj_id):
     project = Project.objects.filter(prj_id=prj_id)[0]
+    project.visit_intro += 1
+    project.save()
     return render(request, "project/introduction.html", {'project': project})
 
 
 def paper(request, prj_id):
     project = Project.objects.filter(prj_id=prj_id)[0]
+    project.visit_paper += 1
+    project.save()
     return render(request, "project/paper.html", {'project': project})
 
 
-def tutorial(request, prj_id):
+def tutorial(request, prj_id, chapter_id):
     project = Project.objects.filter(prj_id=prj_id)[0]
-    return render(request, "project/tutorial.html", {'project': project})
+    project.visit_tutorial += 1
+    project.save()
+    chapters = project.tutorial.split("<h2>")
+    if len(chapters[0]) == 0:
+        del chapters[0]
+    num_chapters = list(range(1, len(chapters) + 1))
+    chapter = chapters[chapter_id - 1]
+
+    context = {'chapter': f"<h2>{chapter}", 'num_chapters': num_chapters, 'project': project}
+    if len(chapters) > chapter_id - 1:
+        context['next_chapter_id'] = chapter_id + 1
+    
+    return render(request, "project/tutorial.html", context)
 
 
 def code(request, prj_id):
+    project = Project.objects.filter(prj_id=prj_id)[0]
+    project.visit_code += 1
+    project.save()
+
     path = os.path.join(os.path.dirname(__file__), 'static', 'project', 'code')
     path = os.path.join(path, f"project{prj_id}.zip")
 
@@ -110,6 +130,8 @@ def login(request):
             else:
                 project.lock = False
         projects = sorted(projects, key=lambda x: x.lock)
+        user.login_times += 1
+        user.save()
         
         return render(request, "project/index.html", {'User': user,
                                                       'projects': projects})

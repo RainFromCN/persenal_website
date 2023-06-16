@@ -15,6 +15,12 @@ class Project(models.Model):
     paper = models.TextField(default='paper')
     tutorial = models.TextField(default='tutorial')
 
+    # 记录访问次数
+    visit_intro = models.IntegerField(default=0)
+    visit_paper = models.IntegerField(default=0)
+    visit_tutorial = models.IntegerField(default=0)
+    visit_code = models.IntegerField(default=0)
+
     def __str__(self):
         return f"[{self.prj_id}]{self.name}"
 
@@ -24,6 +30,7 @@ class User(models.Model):
     user_id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=20)
     password = models.CharField(max_length=20)
+    login_times = models.IntegerField(default=0)  # 累计登录次数
 
     def __str__(self):
         return f"[{self.user_id}]{self.name}"

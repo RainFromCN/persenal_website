@@ -145,27 +145,27 @@
                 </div>
                 <div class="choice">
                     <div class="introduction">
-                        <a href="{% url 'project:introduction' project.prj_id%}">项目简介</a>
+                        <a href="{% url 'project:introduction' project.prj_id%}">项目简介+购买链接</a>
                     </div>
                     <div class="code">
                         {% if project.lock %}
-                        <a href="#">代码🔒</a>
+                        <a href="#">代码(请先购买)</a>
                         {% else %}
                         <a href="{% url 'project:code' project.prj_id %}">代码✅</a>
                         {% endif %}
                     </div>
                     <div class="paper">
                         {% if project.lock %}
-                        <a href="#">论文🔒</a>
+                        <a href="#">论文(请先购买)</a>
                         {% else %}
                         <a href="{% url 'project:paper' project.prj_id %}">论文✅</a>
                         {% endif %}
                     </div>
                     <div class="tutorial">
                         {% if project.lock %}
-                        <a href="#">教程🔒</a>
+                        <a href="#">教程(请先购买)</a>
                         {% else %}
-                        <a href="{% url 'project:tutorial' project.prj_id %}">教程✅</a>
+                        <a href="{% url 'project:tutorial' project.prj_id 1 %}">教程✅</a>
                         {% endif %}
                     </div>
                 </div>

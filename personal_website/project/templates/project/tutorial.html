@@ -74,6 +74,56 @@
                 margin-top: 5%;
                 margin-bottom: 5%;
             }
+
+            .sidebar {
+                position: fixed;
+                bottom: 20%;
+                right: 5%;
+                background-color: #333333;
+                padding-left: 10px;
+                padding-right: 10px;
+                padding-top: 10px;
+                padding-bottom: 10px;
+                border-radius: 10px;
+            }
+
+            .sidebar p a {
+                text-decoration: none;
+            }
+
+            .sidebar p a:link,
+            .sidebar p a:visited {
+                color: #cccccc;
+            }
+
+            .sidebar p a:hover {
+                color: #ffffff;
+            }
+
+            .downbar {
+                background-color: darkgoldenrod;
+                padding: 20px 20px 20px 20px;
+                width: 20%;
+                margin-left:40%;
+                border-radius: 20px;
+            }
+
+            .downbar a {
+                text-decoration: none;
+                text-align: center;
+            }
+
+            .downbar a:visited,
+            .downbar a:link {
+                color: white;
+                font-weight: bolder;
+            }
+
+            .downbar a:hover {
+                color: #cccccc;
+                font-weight: bolder;
+            }
+
         </style>
     </head>
 
@@ -84,8 +134,24 @@
         <hr>
         <main>
             {% autoescape off %}
-            {{project.tutorial}}
+            {{chapter}}
             {% endautoescape off %}
+            {% if next_chapter_id %}
+            <div class="downbar">
+                <a href="{% url 'project:tutorial' project.prj_id next_chapter_id %}">
+                    下一章
+                </a>
+            </div>
+            {% endif %}
+            <div class="sidebar">
+                {% for id_chapter in num_chapters %}
+                    <p>
+                        <a href="{% url 'project:tutorial' project.prj_id id_chapter %}">
+                            第{{id_chapter}}章节
+                        </a>
+                    </p>
+                {% endfor %}
+            </div>
         </main>
     </body>
 </html>
