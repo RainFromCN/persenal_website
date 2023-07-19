@@ -3,9 +3,19 @@ from django.contrib import admin
 # Register your models here.
 
 
-from .models import Project, User, Purchase
+from .models import Project, User, Purchase, Tag
 
 
-admin.site.register(Project)
+class TagInline(admin.StackedInline):
+    model = Tag
+    extra = 0
+
+
+class ProjectAdmin(admin.ModelAdmin):
+    inlines = [TagInline]
+
+
+admin.site.register(Project, ProjectAdmin)
 admin.site.register(User)
 admin.site.register(Purchase)
+admin.site.register(Tag)

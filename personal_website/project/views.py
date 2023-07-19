@@ -1,4 +1,5 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.urls import reverse
 from django.http import HttpResponse, Http404, StreamingHttpResponse
 from .models import User
 import os
@@ -22,55 +23,44 @@ def index(request):
     projects = Project.objects.all()
     for project in projects:
         project.lock = True if project.price > 0 else False
-    return render(request, "project/index.html", {'projects': projects})
+    context = {'projects': projects}
+    if 'username' in request.session:
+        context['username'] = request.session['username']
+    return render(request, "project/index.html", context)
 
 
-def introduction(request, prj_id):
-    project = Project.objects.filter(prj_id=prj_id)[0]
-    project.visit_intro += 1
-    project.save()
-    return render(request, "project/introduction.html", {'project': project})
+# def tutorial(request, prj_id, chapter_id):
+#     project = Project.objects.filter(prj_id=prj_id)[0]
+#     project.visit_tutorial += 1
+#     project.save()
+#     chapters = project.tutorial.split("<h2>")
+#     if len(chapters[0]) == 0:
+#         del chapters[0]
+#     num_chapters = list(range(1, len(chapters) + 1))
+#     chapter = chapters[chapter_id - 1]
 
-
-def paper(request, prj_id):
-    project = Project.objects.filter(prj_id=prj_id)[0]
-    project.visit_paper += 1
-    project.save()
-    return render(request, "project/paper.html", {'project': project})
-
-
-def tutorial(request, prj_id, chapter_id):
-    project = Project.objects.filter(prj_id=prj_id)[0]
-    project.visit_tutorial += 1
-    project.save()
-    chapters = project.tutorial.split("<h2>")
-    if len(chapters[0]) == 0:
-        del chapters[0]
-    num_chapters = list(range(1, len(chapters) + 1))
-    chapter = chapters[chapter_id - 1]
-
-    context = {'chapter': f"<h2>{chapter}", 'num_chapters': num_chapters, 'project': project}
-    if len(chapters) > chapter_id:
-        context['next_chapter_id'] = chapter_id + 1
+#     context = {'chapter': f"<h2>{chapter}", 'num_chapters': num_chapters, 'project': project}
+#     if len(chapters) > chapter_id:
+#         context['next_chapter_id'] = chapter_id + 1
     
-    return render(request, "project/tutorial.html", context)
+#     return render(request, "project/tutorial.html", context)
 
 
-def code(request, prj_id):
-    project = Project.objects.filter(prj_id=prj_id)[0]
-    project.visit_code += 1
-    project.save()
+# def code(request, prj_id):
+#     project = Project.objects.filter(prj_id=prj_id)[0]
+#     project.visit_code += 1
+#     project.save()
 
-    path = os.path.join(os.path.dirname(__file__), 'static', 'project', 'code')
-    path = os.path.join(path, f"project{prj_id}.zip")
+#     path = os.path.join(os.path.dirname(__file__), 'static', 'project', 'code')
+#     path = os.path.join(path, f"project{prj_id}.zip")
 
-    if os.path.exists(path):
-        response = StreamingHttpResponse(read_file(path))
-        response['Content-Type'] = "application/octet-stream"
-        response['Content-Disposition'] = f'attachment; filename=project{prj_id}.zip'
-        return response
-    else:
-        return Http404("code is not exist.")
+#     if os.path.exists(path):
+#         response = StreamingHttpResponse(read_file(path))
+#         response['Content-Type'] = "application/octet-stream"
+#         response['Content-Disposition'] = f'attachment; filename=project{prj_id}.zip'
+#         return response
+#     else:
+#         return Http404("code is not exist.")
 
 
 def image(request, prj_id: int, filename: str):
@@ -123,16 +113,27 @@ def login(request):
         if user.password != password:
             return render(request, "project/login.html", {'message': '密码错误'})
         
-        projects = Project.objects.all()
-        for project in projects:
-            if Purchase.objects.filter(user=user, project=project).count() == 0 and project.price > 0:
-                project.lock = True
-            else:
-                project.lock = False
         user.login_times += 1
         user.save()
-        
-        return render(request, "project/index.html", {'User': user,
-                                                      'projects': projects})
+        request.session['username'] = user.name
+
+        return redirect(reverse('project:index'))
     else:
         return render(request, "project/login.html", {})
+
+
+def exit(request):
+    if 'username' in request.session:
+        del request.session['username']
+    return redirect(reverse('project:index'))
+
+
+def detail(request, prj_id, page):
+    project = Project.objects.filter(prj_id=prj_id).first()
+    context = {'project': project}
+    if 'username' in request.session:
+        context['username'] = request.session['username']        
+        if Purchase.objects.filter(user__name=context['username'], project__prj_id=prj_id).count():
+            context['own'] = True
+    context[f'page{page}'] = True
+    return render(request, "project/detail.html", context)

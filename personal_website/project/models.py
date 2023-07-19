@@ -7,19 +7,13 @@ class Project(models.Model):
     # 项目的基本信息
     prj_id = models.IntegerField(primary_key=True)
     name = models.CharField(max_length=200)
+    brief = models.CharField(max_length=1000, default='')
     pub_date = models.DateTimeField("data published", default=now())
     price = models.FloatField(default=9.9)
 
     # 当前项目的简介，论文以及教程
     introduction = models.TextField(default='introduction')
-    paper = models.TextField(default='paper')
     tutorial = models.TextField(default='tutorial')
-
-    # 记录访问次数
-    visit_intro = models.IntegerField(default=0)
-    visit_paper = models.IntegerField(default=0)
-    visit_tutorial = models.IntegerField(default=0)
-    visit_code = models.IntegerField(default=0)
 
     def __str__(self):
         return f"[{self.prj_id}]{self.name}"
@@ -34,6 +28,14 @@ class User(models.Model):
 
     def __str__(self):
         return f"[{self.user_id}]{self.name}"
+
+
+class Tag(models.Model):
+    project = models.ForeignKey(to=Project, on_delete=models.CASCADE)
+    text = models.CharField(max_length=200)
+
+    def __str__(self):
+        return f"{self.text}"
 
 
 class Purchase(models.Model):

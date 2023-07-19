@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+
+{% load static %}
+{% load project_extras %}
+
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width"/>
+        <title>{{project.name}}</title>
+        <style>
+            *{padding: 0; margin: 0;}
+            a {
+                text-decoration: none;
+                color: inherit;
+            }
+
+            body {
+                background-color: white;
+            }
+
+            header {
+                margin-top: 1%;
+                margin-bottom: 1%;
+                margin-left: 10%;
+                width: 80%;
+                color: rgb(235, 121, 29);
+            }
+
+            header .logo {
+                width: 15%;
+                display: inline-block;
+                vertical-align: middle;
+            }
+
+            header .logo img {
+                width: 100%;
+            }
+
+            header .间隔 {
+                display: inline-block;
+                width: 5%;
+                vertical-align: middle;
+            }
+
+            header .间隔2 {
+                display: inline-block;
+                width: 40%;
+                vertical-align: middle;
+            }
+
+            header .教程 {
+                display: inline-block;
+                text-align: center;
+                width: 10%;
+                vertical-align: middle;
+            }
+
+            header .关于 {
+                display: inline-block;
+                text-align: center;
+                width: 10%;
+                vertical-align: middle;
+            }
+
+            header .教程 a:link,
+            header .教程 a:visited {
+                color: rgb(255, 168, 98);
+            }
+
+            header .教程 a:hover {
+                color: rgb(235, 121, 29);
+            }
+
+            header .关于 a:link,
+            header .关于 a:visited {
+                color: rgb(255, 168, 98);
+            }
+
+            header .关于 a:hover {
+                color: rgb(235, 121, 29);
+            }
+
+            header .登录 {
+                display: inline-block;
+                text-align: center;
+                width: 7%;
+                color:#999999;
+                vertical-align: middle;
+            }
+
+            header .注册 {
+                display: inline-block;
+                text-align: center;
+                width: 7%;
+                color: #999999;
+                vertical-align: middle;
+            }
+
+            .gradient {
+                margin: 0;
+                padding: 0;
+            }
+
+            .intro {
+
+                margin: 0;
+                width: 80%;
+                margin-left: 10%;
+            }
+
+            .intro .主图 {
+                display: inline-block;
+                width: 25%;
+            }
+
+            .intro .主图 img {
+                border-radius: 10px;
+                vertical-align: top;
+                animation: .8s gradient-change ease forwards;
+                width: 100%;
+            }
+
+            .intro .文字 {
+                display: inline-block;
+                margin-left: 3%;
+                width: 40%;
+                vertical-align: top;
+            }
+
+            .intro .文字 .name {
+                color: #555555;
+                font-size: 1.2em;
+                margin-top: 3%;
+                position: relative;
+                top: 1.2em;
+                opacity: 0;
+                animation: 0.8s swift-up ease-in-out forwards;
+            }
+
+            .intro .文字 .brief {
+                color: #999999;
+                font-size: 0.8em;
+                margin-top: 2%;
+                width: 100%;
+                position: relative;
+                top: 0.8em;
+                opacity: 0;
+                animation: 0.8s swift-up ease-in-out forwards;
+            }
+
+            .intro .文字 .tags {
+                margin-top: 3%;
+            }
+
+            .intro .文字 .tags .tag {
+                display: inline;
+                color: rgb(235, 121, 29);
+                font-size: small;
+                text-align: center;
+                background-color: rgb(255, 234, 218);
+                padding-left: 4px;
+                padding-right: 4px;
+                padding-top: 2px;
+                padding-bottom: 2px;
+                margin-right: 5px;
+                border-radius: 4px;
+                position: relative;
+                top: 0.8em;
+                opacity: 0;
+                animation: 0.8s swift-up ease-in-out forwards;
+            }
+
+            .intro .购买 {
+                margin-top: 1%;
+                display: inline-block;
+                vertical-align: top;
+                width: 28%;
+                border-radius: 20px;
+                margin-left: 2%;
+                border: solid 0.5px;
+                border-color: #eeeeee;
+            }
+
+            .intro .购买 .price {
+                margin-top: 10%;
+                font-family:Arial, Helvetica, sans-serif;
+                text-align: center;
+            }
+
+            .intro .购买 .price .￥ {
+                display: inline-block;
+                font-size: 1.2em;
+                color: rgb(235, 121, 29);
+                font-weight: lighter;
+                position: relative;
+                top: 1.2em;
+                opacity: 0;
+                animation: 0.8s swift-up ease-in-out forwards;
+            }
+
+            .intro .购买 .price .数字 {
+                display: inline-block;
+                color: rgb(235, 121, 29);
+                font-size: 2.5em;
+                font-weight: lighter;
+                position: relative;
+                top: 1.2em;
+                opacity: 0;
+                animation: 0.8s swift-up ease-in-out forwards;
+            }
+
+            .intro .购买 .button {
+                margin-top: 10%;
+                text-align: center;
+                margin-bottom: 10%;
+                font-size: 0.8em;
+            }
+
+            .intro .购买 .button .加购 {
+                display: inline-block;
+                background: linear-gradient(to right, rgb(255, 200, 0),rgb(235, 163, 29));
+                padding-left: 15px;
+                padding-right: 15px;
+                padding-top: 10px;
+                padding-bottom: 10px;
+                border-radius: 20px 0 0 20px;
+                width: 30%;
+                color: white;
+                font-weight: bolder;
+            }
+
+            .intro .购买 .button .下单 {
+                display: inline-block;
+                background: linear-gradient(to right, rgb(255, 52, 25),rgb(255, 85, 33));
+                padding-right: 15px;
+                padding-left: 15px;
+                padding-top: 10px;
+                padding-bottom: 10px;
+                border-radius: 0 20px 20px 0;
+                width: 30%;
+                color: white;
+                font-weight: bolder;
+            }
+
+            .栏目 {
+                text-align: center;
+            }
+
+            .栏目 div {
+                display: inline-block;
+                vertical-align: middle;
+                padding-top: 30px;
+                padding-bottom: 35px;
+                padding-left: 20px;
+                padding-right: 20px;
+                color: rgb(255, 168, 98);
+            }
+
+            .栏目 .激活页面 {
+                color: rgb(235, 121, 29);
+                font-weight: bolder;
+                text-decoration-line:underline;
+                text-underline-offset: 100%;
+                text-decoration-thickness: 2.5px;
+            }
+
+            .document {
+                width: 70%;
+                margin-left: 15%;
+                color:#555555;
+                line-height: 200%;
+            }
+
+            .document {
+                margin-top: 10px;
+            }
+
+            .document h2 {
+                color:rgb(235, 121, 29);
+                font-size: 1.5em;
+                font-weight: normal;
+                margin-top: 100px;
+                padding-top: 20px;
+                padding-bottom: 10px;
+                border-top: solid 1px;
+                border-color: #eeeeee;
+            }
+
+            .document ul {
+                list-style-type: none;
+                margin-top: 20px;
+                margin-bottom: 20px;
+            }
+
+            .document li {
+                border-left: solid 3px;
+                border-color: rgb(235, 121, 29);
+                margin-top: 10px;
+                margin-left: 10px;
+                padding-left: 10px;
+                background: linear-gradient(to right, rgba(255, 133, 33, 0.15), rgba(255, 133, 33, 0), rgba(0, 0, 0, 0), rgba(0, 0, 0, 0));
+            }
+
+            .留白 {
+                height: 100px;
+            }
+
+            @keyframes swift-up {
+                to {
+                    top: 0em;
+                    opacity: 1;
+                }
+            }
+
+            @keyframes gradient-change {
+                to {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+
+                from {
+                    opacity: 0;
+                    transform: scale(0.5);
+                }
+            }
+
+        </style>
+    </head>
+
+    <body>
+        <header>
+            <div class="logo">
+                <img src="{% static 'project/image/logo.png' %}">
+            </div>
+            <div class="间隔"></div>
+            <div class="教程">
+                <a href="{% url 'project:index' %}">教程</a>
+            </div>
+            <div class="关于">
+                <a href="#">About</a>
+            </div>
+            <div class="间隔2"></div>
+
+            {% if username %}
+                <div class="登录">
+                    @{{username}}
+                </div>
+                <div class="登录"><a href="{% url 'project:exit' %}">退出</a></div>
+            {% else %}
+                <div class="登录">
+                    <a href="{% url 'project:login' %}">登录</a>
+                </div>
+                <div class="注册">
+                    <a href="{% url 'project:signup' %}">注册</a>
+                </div>
+            {% endif %}
+        </header>
+
+        <img class='gradient' src="{% static 'project/image/gradient.png' %}" width=100%>
+
+        <div class="intro">
+            <div class="主图">
+                {% with "project/image/"|addstr:project.prj_id|addstr:"/主图.jpg" as path %}
+                <img src="{% static path %}">
+                {% endwith %}
+            </div>
+            <div class="文字">
+                <div class="name">{{project.name}}</div>
+                <div class="brief">{{project.brief}}</div>
+                <div class="tags">
+                    {% for tag in project.tag_set.all %}
+                    <div class="tag">
+                        {{tag}}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="购买">
+                <div class="price">
+                    <div class="￥">￥</div>
+                    <div class="数字">{{project.price}}&nbsp&nbsp</div>
+                </div>
+                <div class="button">
+                    <a href="#"><div class="加购">加购物车</div></a><a href="#"><div class="下单">立即购买</div></a>
+                </div>
+            </div>
+        </div>
+
+        <img class='gradient' src="{% static 'project/image/gradient-top.png' %}" width=100%>
+        <div class="栏目">
+            {% if page0 %}
+            <div class="激活页面"><a href="{% url 'project:detail' project.prj_id 0 %}">教程简介</a></div>
+            {% else %}
+            <div><a href="{% url 'project:detail' project.prj_id 0 %}">教程简介</a></div>
+            {% endif %}
+            {% if page1 %}
+            <div class="激活页面"><a href="{% url 'project:detail' project.prj_id 1 %}">学习服务</a></div>
+            {% else %}
+            <div><a href="{% url 'project:detail' project.prj_id 1 %}">学习服务</a></div>
+            {% endif %}
+            {% if page2 %}
+            <div class="激活页面"><a href="{% url 'project:detail' project.prj_id 2 %}">常见问题</a></div>
+            {% else %}
+            <div><a href="{% url 'project:detail' project.prj_id 2 %}">常见问题</a></div>
+            {% endif %}
+        </div>
+        <img class="gradient" src="{% static 'project/image/gradient.png' %}" width=100%>
+
+        <div class="document">
+            {% if page0 %}
+            {% autoescape off %}
+            {{project.introduction}}
+            {% endautoescape off %}
+            {% elif page1 %}
+            {% elif page2 %}
+            {% endif %}
+        </div>
+
+        <div class="留白"></div>
+    </body>
+</html>
