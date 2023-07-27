@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+
+{% load static %}
+{% load project_extras %}
+
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width"/>
+        <title>{{project.name}}</title>
+        <style>
+            *{padding: 0; margin: 0;}
+            a {
+                text-decoration: none;
+                color: inherit;
+            }
+
+            body {
+                background-color: white;
+            }
+
+            header {
+                margin-top: 1%;
+                margin-bottom: 1%;
+                margin-left: 10%;
+                width: 80%;
+                color: rgb(235, 121, 29);
+            }
+
+            header .logo {
+                width: 15%;
+                display: inline-block;
+                vertical-align: middle;
+            }
+
+            header .logo img {
+                width: 100%;
+            }
+
+            header .间隔 {
+                display: inline-block;
+                width: 5%;
+                vertical-align: middle;
+            }
+
+            header .间隔2 {
+                display: inline-block;
+                width: 40%;
+                vertical-align: middle;
+            }
+
+            header .教程 {
+                display: inline-block;
+                text-align: center;
+                width: 10%;
+                vertical-align: middle;
+            }
+
+            header .关于 {
+                display: inline-block;
+                text-align: center;
+                width: 10%;
+                vertical-align: middle;
+            }
+
+            header .教程 a:link,
+            header .教程 a:visited {
+                color: rgb(255, 168, 98);
+            }
+
+            header .教程 a:hover {
+                color: rgb(235, 121, 29);
+            }
+
+            header .关于 a:link,
+            header .关于 a:visited {
+                color: rgb(255, 168, 98);
+            }
+
+            header .关于 a:hover {
+                color: rgb(235, 121, 29);
+            }
+
+            header .登录 {
+                display: inline-block;
+                text-align: center;
+                width: 7%;
+                color:#999999;
+                vertical-align: middle;
+            }
+
+            header .注册 {
+                display: inline-block;
+                text-align: center;
+                width: 7%;
+                color: #999999;
+                vertical-align: middle;
+            }
+
+            .gradient {
+                margin: 0;
+                padding: 0;
+            }
+
+            main {
+                text-align: center;
+            }
+
+            .提示 {
+                text-align: center;
+                color:#999999;
+                font-size: 1em;
+            }
+
+            .兑换 {
+                display: inline-block;
+                border-radius: 20px;
+                padding: 20px;
+                text-align: left;
+                box-shadow: 0px 0px 5px #CCCCCC;
+            }
+
+            .输入信息 {
+                color: rgb(235, 121, 29);
+            }
+
+            .留白 {
+                height: 100px;
+            }
+
+            .订单号 {
+                border: solid 0.5px;
+                border-color: #eeeeee;
+                border-radius: 10px;
+                margin-top: 10px;
+                padding: 5px;
+                padding-left: 10px;
+                margin-bottom: 10px;
+                margin-right: 10px;
+                outline: 0;
+                color: #999999;
+            }
+
+            .订单号:focus {
+                box-shadow: 0px 0px 10px rgb(237, 237, 237);
+                border-color: #ffffff;
+            }
+
+            .按钮 {
+                background-color:rgb(235, 121, 29);
+                padding: 6px;
+                padding-left: 15px;
+                padding-right: 15px;
+                color: #ffffff;
+                border: 0;
+                border-radius: 10px;
+            }
+
+            .按钮:hover {
+                background-color:rgb(255, 168, 98);
+            }
+
+            @keyframes swift-up {
+                to {
+                    top: 0em;
+                    opacity: 1;
+                }
+            }
+
+            @keyframes gradient-change {
+                to {
+                    opacity: 1;
+                    transform: scale(1);
+                }
+
+                from {
+                    opacity: 0;
+                    transform: scale(0.5);
+                }
+            }
+
+        </style>
+    </head>
+
+    <body>
+        <header>
+            <div class="logo">
+                <img src="{% static 'project/image/logo.png' %}">
+            </div>
+            <div class="间隔"></div>
+            <div class="教程">
+                <a href="{% url 'project:index' %}">教程</a>
+            </div>
+            <div class="关于">
+                <a href="#">About</a>
+            </div>
+            <div class="间隔2"></div>
+
+            {% if username %}
+                <div class="登录">
+                    @{{username}}
+                </div>
+                <div class="登录"><a href="{% url 'project:exit' %}">退出</a></div>
+            {% else %}
+                <div class="登录">
+                    <a href="{% url 'project:login' %}">登录</a>
+                </div>
+                <div class="注册">
+                    <a href="{% url 'project:signup' %}">注册</a>
+                </div>
+            {% endif %}
+        </header>
+
+        <img class='gradient' src="{% static 'project/image/gradient.png' %}" width=100%>
+
+        {% if message %}
+        <div class="提示">{{message}}</div>
+        {% elif username %}
+        <main>
+            <form action="{% url 'project:activate' project.prj_id %}" method='post' class="兑换">
+                {% csrf_token %}
+                <div class="输入信息">请输入购买订单号</div>
+                <input class="订单号" type="text" name="order_id">
+                <input type="submit" value="激活" class="按钮">
+            </form>
+        </main>
+        {% else %}
+        <div class="提示">激活之前请先登录账号，若还没有则请先注册账号</div>
+        {% endif %}
+
+        <div class="留白"></div>
+    </body>
+</html>

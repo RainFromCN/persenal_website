@@ -285,10 +285,12 @@
                 margin-left: 15%;
                 color:#555555;
                 line-height: 200%;
+                margin-top: 10px;
             }
 
-            .document {
-                margin-top: 10px;
+            .document img{
+                max-width: 100%;
+                transform: scale(0.8);
             }
 
             .document h2 {
@@ -319,6 +321,48 @@
 
             .留白 {
                 height: 100px;
+            }
+
+            code {
+                font-size: 1.2em;
+                background-color: #eeeeee;
+                margin-left: 5px;
+                margin-right: 5px;
+                padding: 2px;
+                border-radius: 5px;
+            }
+
+            .document .code_block {
+                background: linear-gradient(to right, rgba(255, 52, 25, 0.1),rgba(91, 77, 255, 0.1));
+                padding: 20px;
+                margin-top: 30px;
+                margin-bottom: 30px;
+                border-radius: 20px 20px 20px 20px;
+                color: #555555;
+                font-weight: bolder;
+                line-height: 150%;
+                font-family: 'Courier New', Courier, monospace;
+                font-size: 1em;
+                box-shadow: 0px 0px 10px #eeeeee;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }
+
+            .前后 {
+                text-align: center;
+            }
+
+            .前后 .按钮 {
+                display: inline-block;
+                background: linear-gradient(to right, rgb(255, 52, 25),rgb(255, 130, 41));
+                padding: 10px 50px  10px 50px;
+                margin-top: 50px;
+                margin-bottom: 10px;
+                margin-left: 20px;
+                margin-right: 20px;
+                border-radius: 20px 20px 20px 20px;
+                color: white;
+                font-weight: bolder;
             }
 
             @keyframes swift-up {
@@ -374,69 +418,18 @@
 
         <img class='gradient' src="{% static 'project/image/gradient.png' %}" width=100%>
 
-        <div class="intro">
-            <div class="主图">
-                {% with "project/image/"|addstr:project.prj_id|addstr:"/主图.jpg" as path %}
-                <img src="{% static path %}">
-                {% endwith %}
-            </div>
-            <div class="文字">
-                <div class="name">{{project.name}}</div>
-                <div class="brief">{{project.brief}}</div>
-                <div class="tags">
-                    {% for tag in project.tag_set.all %}
-                    <div class="tag">
-                        {{tag}}
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            {% if own %}
-            <div class="购买">
-                <div class="button">
-                    <a href="{% url 'project:tutorial' project.prj_id 1 %}"><div class="开始学习">开始学习</div></a>
-                </div>
-            </div>
-            {% else %}
-            <div class="购买">
-                <div class="price">
-                    <div class="￥">￥</div>
-                    <div class="数字">{{project.price}}&nbsp&nbsp</div>
-                </div>
-                <div class="button">
-                    <a href="{% url 'project:activate' project.prj_id %}"><div class="加购">立即激活</div></a><a target="_blank" href="https://item.taobao.com/item.htm?id=730879174627"><div class="下单">立即购买</div></a>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
-        <img class='gradient' src="{% static 'project/image/gradient-top.png' %}" width=100%>
-        <div class="栏目">
-            {% if page0 %}
-            <div class="激活页面"><a href="{% url 'project:detail' project.prj_id 0 %}">教程简介</a></div>
-            {% else %}
-            <div><a href="{% url 'project:detail' project.prj_id 0 %}">教程简介</a></div>
-            {% endif %}
-            {% if page1 %}
-            <div class="激活页面"><a href="{% url 'project:detail' project.prj_id 1 %}">学习服务</a></div>
-            {% else %}
-            <div><a href="{% url 'project:detail' project.prj_id 1 %}">学习服务</a></div>
-            {% endif %}
-            {% if page2 %}
-            <div class="激活页面"><a href="{% url 'project:detail' project.prj_id 2 %}">常见问题</a></div>
-            {% else %}
-            <div><a href="{% url 'project:detail' project.prj_id 2 %}">常见问题</a></div>
-            {% endif %}
-        </div>
-        <img class="gradient" src="{% static 'project/image/gradient.png' %}" width=100%>
-
         <div class="document">
-            {% if page0 %}
             {% autoescape off %}
-            {{project.introduction}}
+            {{chapter}}
             {% endautoescape off %}
-            {% elif page1 %}
-            {% elif page2 %}
+        </div>
+
+        <div class="前后">
+            {% if last_chapter_id %}
+            <a class="按钮" href="{% url 'project:tutorial' project.prj_id last_chapter_id %}">上一章</a>
+            {% endif %}
+            {% if next_chapter_id %}
+            <a class="按钮" href="{% url 'project:tutorial' project.prj_id next_chapter_id %}">下一章</a>
             {% endif %}
         </div>
 

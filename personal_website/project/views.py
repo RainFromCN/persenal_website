@@ -5,7 +5,7 @@ from .models import User
 import os
 
 
-from .models import Project, User, Purchase
+from .models import Project, User, Purchase, Order
 
 
 def read_file(file_name, chunk_size=512):
@@ -137,3 +137,43 @@ def detail(request, prj_id, page):
             context['own'] = True
     context[f'page{page}'] = True
     return render(request, "project/detail.html", context)
+
+
+def activate(request, prj_id):
+    project = Project.objects.filter(prj_id=prj_id).first()
+    if request.method == 'POST':
+        order = Order.objects.filter(order_id=request.POST['order_id'])
+        if order.count() == 0:
+            context = {'message': '订单号不存在，请确认是否购买，若已购买请联系淘宝客服'}
+            return render(request, "project/activate.html", context)
+        elif Purchase.objects.filter(order__order_id=order.first().order_id).count():
+            context = {'message': '该订单号已被使用，如有疑问请联系淘宝客服'}
+            return render(request, "project/activate.html", context)
+        else:
+            order = order.first()
+            user = User.objects.filter(name=request.session['username']).first()
+            purchase = Purchase(user=user, project=project, order=order)
+            purchase.save()
+            return render(request, "project/activate.html", {'message': "激活成功"})
+    else:
+        context = {'project': project}
+        if 'username' in request.session:
+            context['username'] = request.session['username']
+        return render(request, "project/activate.html", context)
+
+
+def tutorial(request, prj_id, chapter_id):
+    project = Project.objects.filter(prj_id=prj_id)[0]
+    chapters = project.tutorial.split("<h2>")
+    if len(chapters[0]) == 0:
+        del chapters[0]
+    num_chapters = list(range(1, len(chapters) + 1))
+    chapter = chapters[chapter_id - 1]
+
+    context = {'chapter': f"<h2>{chapter}", 'num_chapters': num_chapters, 'project': project}
+    if len(chapters) > chapter_id:
+        context['next_chapter_id'] = chapter_id + 1
+    if chapter_id > 1:
+        context['last_chapter_id'] = chapter_id - 1
+    
+    return render(request, "project/tutorial.html", context)

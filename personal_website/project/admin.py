@@ -3,7 +3,7 @@ from django.contrib import admin
 # Register your models here.
 
 
-from .models import Project, User, Purchase, Tag
+from .models import Project, User, Purchase, Tag, Order
 
 
 class TagInline(admin.StackedInline):
@@ -19,3 +19,4 @@ admin.site.register(Project, ProjectAdmin)
 admin.site.register(User)
 admin.site.register(Purchase)
 admin.site.register(Tag)
+admin.site.register(Order)
