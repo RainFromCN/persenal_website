@@ -8,94 +8,12 @@
         <meta charset="utf-8"/>
         <meta name="viewport" content="width=device-width"/>
         <title>银河AI - 人工智能学习平台</title>
+        <link rel="stylesheet" href="{% static 'project/css/basic.css' %}">
+        <link rel="stylesheet" href="{% static 'project/css/header.css' %}">
         <style>
-            *{padding: 0; margin: 0;}
-            a {
-                text-decoration: none;
-                color: inherit;
-            }
-
-            img {
-                width: 100%;
-            }
-
-            body {
-                background-color: white;
-            }
-
-            header {
-                margin-top: 1%;
-                margin-bottom: 1%;
-                margin-left: 10%;
-                width: 80%;
-                height: 10%;
-                color: rgb(235, 121, 29);
-            }
-
-            header .logo {
-                width: 15%;
-                display: inline-block;
-                vertical-align: middle;
-            }
-
-            header .间隔 {
-                display: inline-block;
-                width: 5%;
-                vertical-align: middle;
-            }
-
-            header .间隔2 {
-                display: inline-block;
-                width: 40%;
-                vertical-align: middle;
-            }
-
-            header .教程 {
-                display: inline-block;
-                text-align: center;
-                width: 10%;
-                vertical-align: middle;
-                text-decoration-line:underline;
-                text-underline-offset: 100%;
-                text-decoration-thickness: 2.5px;
-                font-weight: bold;
-            }
-
-            header .关于 {
-                display: inline-block;
-                text-align: center;
-                width: 10%;
-                vertical-align: middle;
-            }
-
-            header .关于 a:link,
-            header .关于 a:visited {
-                color: rgb(255, 168, 98);
-            }
-
-            header .关于 a:hover {
-                color: rgb(235, 121, 29);
-            }
-
-            header .登录 {
-                display: inline-block;
-                text-align: center;
-                width: 7%;
-                color:#999999;
-                vertical-align: middle;
-            }
-
-            header .注册 {
-                display: inline-block;
-                text-align: center;
-                width: 7%;
-                color: #999999;
-                vertical-align: middle;
-            }
-
             main {
-                margin-left: 10%;
-                width: 80%;
+                margin-left: 15%;
+                width: 70%;
                 border: solid 1.5px;
                 border-radius: 10px;
                 border-color: #EEEEEE;
@@ -106,6 +24,7 @@
                 margin-right: 4%;
                 margin-top: 4%;
                 margin-bottom: 4%;
+                display:table;
             }
 
             main .project .intro .title {
@@ -114,10 +33,14 @@
                 width: 100%;
                 vertical-align: middle;
                 margin-top: 3%;
-                position: relative;
-                top: 1.2em;
-                opacity: 0;
-                animation: 0.8s swift-up ease-in-out forwards;
+                opacity: 1;
+                animation: 0.2s change-color-2 ease-in-out forwards;
+            }
+
+            main .project .intro .title:hover, 
+            main .project .intro .title:focus, 
+            main .project .intro .title:active  {
+                animation: 0.2s change-color ease-in-out forwards;
             }
 
             main .project .intro .brief {
@@ -138,8 +61,8 @@
 
             main .project .intro .tag {
                 display: inline;
-                color: rgb(235, 121, 29);
-                font-size: small;
+                color: rgb(220, 99, 0);
+                font-size: 1em;
                 text-align: center;
                 background-color: rgb(255, 234, 218);
                 padding-left: 4px;
@@ -156,39 +79,17 @@
 
             main .project .intro {
                 display: inline-block;
-                vertical-align:top;
-                margin-left:2%;
-                width: 55%
+                vertical-align:middle;
+                margin-left:4%;
+                width: 71%
             }
 
             main .project img {
                 display: inline-block;
-                width: 20%;
+                width: 25%;
                 border-radius: 10px;
                 vertical-align: middle;
                 animation: .8s gradient-change ease forwards;
-            }
-
-            main .project .detail {
-                display: inline-block;
-                vertical-align: middle;
-                width: 21%;
-            }
-
-            main .project .detail .详情 {
-                margin-left: 30%;
-                text-align: center;
-                background-color: rgb(235, 121, 29);
-                padding-left: 2px;
-                padding-right: 2px;
-                padding-top: 10px;
-                padding-bottom: 10px;
-                border-radius: 20px;
-                color: white;
-            }
-
-            .gradient {
-                margin: 0;
             }
 
             .横线 {
@@ -216,23 +117,66 @@
                     transform: scale(0.5);
                 }
             }
+
+            @keyframes change-color {
+                to {
+                    opacity: 1;
+                    color:rgb(235, 121, 29);
+                }
+
+                from {
+                    opacity: 1;
+                    color: #555555;
+                }
+            }
+
+            @keyframes change-color-2 {
+                to {
+                    opacity: 1;
+                    color: #555555;
+                }
+
+                from {
+                    opacity: 1;
+                    color:rgb(235, 121, 29);
+                    
+                }
+            }
+
+            @media screen and (max-width: 720px) {
+                main .project img {
+                    width: 0%;
+                }
+
+                main .project .intro {
+                    width: 100%;
+                    margin-left: 0;
+                }
+
+                main {
+                    margin-left: 10%;
+                    width: 80%;
+                }
+            }
         </style>
     </head>
 
     <body>
         <header>
             <div class="logo">
-                <img src="{% static 'project/image/logo.png' %}">
+                <img src="{% static 'project/image/logo.png' %}"/>
             </div>
-            <div class="间隔"></div>
-            <div class="教程">
-                <a href="{% url 'project:index' %}">教程</a>
+            
+            <div class="nav">
+                <div class="激活导航">
+                    <a href="{% url 'project:index' %}">经典毕设</a>
+                </div>
+                <div class="未激活导航">
+                    <a href="#">交易广场</a>
+                </div>
             </div>
-            <div class="关于">
-                <a href="#">About</a>
-            </div>
-            <div class="间隔2"></div>
 
+            <div class="右对齐">
             {% if username %}
                 <div class="登录">
                     @{{username}}
@@ -246,6 +190,7 @@
                     <a href="{% url 'project:signup' %}">注册</a>
                 </div>
             {% endif %}
+            </div>
         </header>
 
         <img class='gradient' src="{% static 'project/image/gradient.png' %}" width=100%>
@@ -254,26 +199,20 @@
             {% for project in projects %}
             <div class="project">
                 {% with "project/image/"|addstr:project.prj_id|addstr:"/主图.jpg" as path %}
-                    <img src="{% static path %}">
+                <img src="{% static path %}">
                 {% endwith %}
                 <div class="intro">
-                    <div class="title">
+                    <a class="title" href="{% url 'project:detail' project.prj_id 0 %}">
                         {{project.name}}
-                    </div>
+                    </a>
                     <div class="brief">
                         {{project.brief}}
                     </div>
                     <div class="tags">
                         {% for tag in project.tag_set.all %}
-                        <div class="tag">
-                            {{tag}}
-                        </div>
+                        <div class="tag">{{tag}}</div>
                         {% endfor %}
                     </div>
-                </div>
-                <div class="detail">
-                    <a href="{% url 'project:detail' project.prj_id 0 %}">
-                    <div class="详情">查看</div></a>
                 </div>
             </div>
             <div class="横线"></div>

@@ -8,115 +8,24 @@
         <meta charset="utf-8"/>
         <meta name="viewport" content="width=device-width"/>
         <title>{{project.name}}</title>
+        <link rel="stylesheet" href="{% static 'project/css/basic.css' %}">
+        <link rel="stylesheet" href="{% static 'project/css/header.css' %}">
         <style>
-            *{padding: 0; margin: 0;}
-            a {
-                text-decoration: none;
-                color: inherit;
-            }
-
-            body {
-                background-color: white;
-            }
-
-            header {
-                margin-top: 1%;
-                margin-bottom: 1%;
-                margin-left: 10%;
-                width: 80%;
-                color: rgb(235, 121, 29);
-            }
-
-            header .logo {
-                width: 15%;
-                display: inline-block;
-                vertical-align: middle;
-            }
-
-            header .logo img {
-                width: 100%;
-            }
-
-            header .间隔 {
-                display: inline-block;
-                width: 5%;
-                vertical-align: middle;
-            }
-
-            header .间隔2 {
-                display: inline-block;
-                width: 40%;
-                vertical-align: middle;
-            }
-
-            header .教程 {
-                display: inline-block;
-                text-align: center;
-                width: 10%;
-                vertical-align: middle;
-            }
-
-            header .关于 {
-                display: inline-block;
-                text-align: center;
-                width: 10%;
-                vertical-align: middle;
-            }
-
-            header .教程 a:link,
-            header .教程 a:visited {
-                color: rgb(255, 168, 98);
-            }
-
-            header .教程 a:hover {
-                color: rgb(235, 121, 29);
-            }
-
-            header .关于 a:link,
-            header .关于 a:visited {
-                color: rgb(255, 168, 98);
-            }
-
-            header .关于 a:hover {
-                color: rgb(235, 121, 29);
-            }
-
-            header .登录 {
-                display: inline-block;
-                text-align: center;
-                width: 7%;
-                color:#999999;
-                vertical-align: middle;
-            }
-
-            header .注册 {
-                display: inline-block;
-                text-align: center;
-                width: 7%;
-                color: #999999;
-                vertical-align: middle;
-            }
-
-            .gradient {
-                margin: 0;
-                padding: 0;
-            }
-
             .intro {
-
                 margin: 0;
                 width: 80%;
                 margin-left: 10%;
+                display:table;
             }
 
             .intro .主图 {
                 display: inline-block;
                 width: 25%;
+                vertical-align: middle;
             }
 
             .intro .主图 img {
                 border-radius: 10px;
-                vertical-align: top;
                 animation: .8s gradient-change ease forwards;
                 width: 100%;
             }
@@ -125,13 +34,12 @@
                 display: inline-block;
                 margin-left: 3%;
                 width: 40%;
-                vertical-align: top;
+                vertical-align: middle;
             }
 
             .intro .文字 .name {
                 color: #555555;
                 font-size: 1.2em;
-                margin-top: 3%;
                 position: relative;
                 top: 1.2em;
                 opacity: 0;
@@ -155,8 +63,8 @@
 
             .intro .文字 .tags .tag {
                 display: inline;
-                color: rgb(235, 121, 29);
-                font-size: small;
+                color: rgb(220, 99, 0);
+                font-size: 1em;
                 text-align: center;
                 background-color: rgb(255, 234, 218);
                 padding-left: 4px;
@@ -172,10 +80,9 @@
             }
 
             .intro .购买 {
-                margin-top: 1%;
                 display: inline-block;
-                vertical-align: top;
-                width: 28%;
+                vertical-align: middle;
+                width: 29%;
                 border-radius: 20px;
                 margin-left: 2%;
                 border: solid 0.5px;
@@ -192,9 +99,6 @@
                 display: inline-block;
                 font-size: 1.2em;
                 color: rgb(235, 121, 29);
-                font-weight: lighter;
-                position: relative;
-                top: 1.2em;
                 opacity: 0;
                 animation: 0.8s swift-up ease-in-out forwards;
             }
@@ -203,15 +107,13 @@
                 display: inline-block;
                 color: rgb(235, 121, 29);
                 font-size: 2.5em;
-                font-weight: lighter;
-                position: relative;
-                top: 1.2em;
                 opacity: 0;
                 animation: 0.8s swift-up ease-in-out forwards;
             }
 
             .intro .购买 .button {
                 margin-top: 10%;
+                display: block;
                 text-align: center;
                 margin-bottom: 10%;
                 font-size: 0.8em;
@@ -220,42 +122,33 @@
             .intro .购买 .button .加购 {
                 display: inline-block;
                 background: linear-gradient(to right, rgb(255, 200, 0),rgb(235, 163, 29));
-                padding-left: 15px;
-                padding-right: 15px;
+                padding-left: 5%;
+                padding-right: 5%;
                 padding-top: 10px;
                 padding-bottom: 10px;
                 border-radius: 20px 0 0 20px;
                 width: 30%;
                 color: white;
                 font-weight: bolder;
+                overflow:hidden; 
+                text-overflow:ellipsis; 
+                white-space:nowrap; 
             }
 
             .intro .购买 .button .下单 {
                 display: inline-block;
                 background: linear-gradient(to right, rgb(255, 52, 25),rgb(255, 85, 33));
-                padding-right: 15px;
-                padding-left: 15px;
+                padding-right: 5%;
+                padding-left: 5%;
                 padding-top: 10px;
                 padding-bottom: 10px;
                 border-radius: 0 20px 20px 0;
                 width: 30%;
                 color: white;
                 font-weight: bolder;
-            }
-
-            .intro .购买 .button .开始学习 {
-                display: inline-block;
-                background: linear-gradient(to right, rgb(255, 52, 25),rgb(255, 130, 41));
-                padding-right: 15px;
-                padding-left: 15px;
-                padding-top: 10px;
-                padding-bottom: 10px;
-                margin-top: 10px;
-                margin-bottom: 10px;
-                border-radius: 20px 20px 20px 20px;
-                width: 30%;
-                color: white;
-                font-weight: bolder;
+                overflow:hidden; 
+                text-overflow:ellipsis; 
+                white-space:nowrap; 
             }
 
             .栏目 {
@@ -276,7 +169,7 @@
                 color: rgb(235, 121, 29);
                 font-weight: bolder;
                 text-decoration-line:underline;
-                text-underline-offset: 100%;
+                text-underline-offset: 8px;
                 text-decoration-thickness: 2.5px;
             }
 
@@ -340,23 +233,90 @@
                 }
             }
 
+            @media screen and (max-width: 820px) {
+                .intro .主图 {
+                    width: 0;
+                }
+
+                .intro .文字 {
+                    width: 60%;
+                    margin-left: 0;
+                }
+
+                .intro .购买 {
+                    width: 33%;
+                    margin-left: 6%;
+                }
+
+                .intro .购买 .price .￥ {
+                    font-size: 1em;
+                }
+
+                .intro .购买 .price .数字 {
+                    font-size: 2em;
+                }
+            }
+
+            @media screen and (max-width: 700px) {
+                .intro .购买 .button .加购 {
+                    padding-left: 5%;
+                    padding-right: 5%;
+                    border-radius: 20px;
+                    margin-left: 5%;
+                    margin-top: 10px;
+                    margin-bottom: 10px;;
+                    width: 80%;
+                    display: block;
+                }
+
+                .intro .购买 .button .下单 {
+                    padding-right: 5%;
+                    padding-left: 5%;
+                    border-radius: 20px;
+                    margin-left: 5%;
+                    margin-top: 10px;
+                    margin-bottom: 10px;;
+                    width: 80%;
+                    display: block;
+                }
+
+                .intro .购买 .price .￥ {
+                    font-size: 0.8em;
+                }
+
+                .intro .购买 .price .数字 {
+                    font-size: 1.6em;
+                }
+
+                .栏目 div {
+                    padding-top: 20px;
+                    padding-bottom: 25px;
+                }
+
+                .intro {
+                    padding-top: 20px;
+                    padding-bottom: 20px;
+                }
+            }
         </style>
     </head>
 
     <body>
         <header>
             <div class="logo">
-                <img src="{% static 'project/image/logo.png' %}">
+                <img src="{% static 'project/image/logo.png' %}"/>
             </div>
-            <div class="间隔"></div>
-            <div class="教程">
-                <a href="{% url 'project:index' %}">教程</a>
+            
+            <div class="nav">
+                <div class="未激活导航">
+                    <a href="{% url 'project:index' %}">经典毕设</a>
+                </div>
+                <div class="未激活导航">
+                    <a href="#">交易广场</a>
+                </div>
             </div>
-            <div class="关于">
-                <a href="#">About</a>
-            </div>
-            <div class="间隔2"></div>
 
+            <div class="右对齐">
             {% if username %}
                 <div class="登录">
                     @{{username}}
@@ -370,6 +330,7 @@
                     <a href="{% url 'project:signup' %}">注册</a>
                 </div>
             {% endif %}
+            </div>
         </header>
 
         <img class='gradient' src="{% static 'project/image/gradient.png' %}" width=100%>
@@ -385,16 +346,14 @@
                 <div class="brief">{{project.brief}}</div>
                 <div class="tags">
                     {% for tag in project.tag_set.all %}
-                    <div class="tag">
-                        {{tag}}
-                    </div>
+                    <div class="tag">{{tag}}</div>
                     {% endfor %}
                 </div>
             </div>
             {% if own %}
             <div class="购买">
                 <div class="button">
-                    <a href="{% url 'project:tutorial' project.prj_id 1 %}"><div class="开始学习">开始学习</div></a>
+                    <a href="{% url 'project:tutorial' project.prj_id 1 %}"><div class="加购">开始学习</div></a><a href="#"><div class="下单">加答疑群</div></a>
                 </div>
             </div>
             {% else %}
@@ -413,9 +372,9 @@
         <img class='gradient' src="{% static 'project/image/gradient-top.png' %}" width=100%>
         <div class="栏目">
             {% if page0 %}
-            <div class="激活页面"><a href="{% url 'project:detail' project.prj_id 0 %}">教程简介</a></div>
+            <div class="激活页面"><a href="{% url 'project:detail' project.prj_id 0 %}">毕设简介</a></div>
             {% else %}
-            <div><a href="{% url 'project:detail' project.prj_id 0 %}">教程简介</a></div>
+            <div><a href="{% url 'project:detail' project.prj_id 0 %}">毕设简介</a></div>
             {% endif %}
             {% if page1 %}
             <div class="激活页面"><a href="{% url 'project:detail' project.prj_id 1 %}">学习服务</a></div>
