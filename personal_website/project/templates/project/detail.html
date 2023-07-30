@@ -312,7 +312,7 @@
                     <a href="{% url 'project:index' %}">经典毕设</a>
                 </div>
                 <div class="未激活导航">
-                    <a href="#">交易广场</a>
+                    <a href="#">需求广场</a>
                 </div>
             </div>
 
@@ -377,14 +377,14 @@
             <div><a href="{% url 'project:detail' project.prj_id 0 %}">毕设简介</a></div>
             {% endif %}
             {% if page1 %}
-            <div class="激活页面"><a href="{% url 'project:detail' project.prj_id 1 %}">学习服务</a></div>
+            <div class="激活页面"><a href="{% url 'project:detail' project.prj_id 1 %}">课程评价</a></div>
             {% else %}
-            <div><a href="{% url 'project:detail' project.prj_id 1 %}">学习服务</a></div>
+            <div><a href="{% url 'project:detail' project.prj_id 1 %}">课程评价</a></div>
             {% endif %}
             {% if page2 %}
-            <div class="激活页面"><a href="{% url 'project:detail' project.prj_id 2 %}">常见问题</a></div>
+            <div class="激活页面"><a href="{% url 'project:detail' project.prj_id 2 %}">问大家</a></div>
             {% else %}
-            <div><a href="{% url 'project:detail' project.prj_id 2 %}">常见问题</a></div>
+            <div><a href="{% url 'project:detail' project.prj_id 2 %}">问大家</a></div>
             {% endif %}
         </div>
         <img class="gradient" src="{% static 'project/image/gradient.png' %}" width=100%>
