@@ -111,6 +111,28 @@ header .右对齐 .注册 {
 
 @media screen and (max-width: 720px){
     header .nav .激活导航 {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    header .nav .未激活导航 {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    header .右对齐 .登录 {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    header .右对齐 .注册 {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+}
+
+@media screen and (max-width: 400px) {
+    header .nav .激活导航 {
         padding-left: 5px;
         padding-right: 5px;
         font-size: 0.8em;

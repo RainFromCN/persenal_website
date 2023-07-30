@@ -158,6 +158,12 @@
                     width: 80%;
                 }
             }
+
+            @media screen and (max-width: 400px) {
+                main .project .intro .title {
+                    font-size: 1em;
+                }
+            }
         </style>
     </head>
 
@@ -209,7 +215,7 @@
                         {{project.brief}}
                     </div>
                     <div class="tags">
-                        {% for tag in project.proejcttag_set.all %}
+                        {% for tag in project.projecttag_set.all %}
                         <div class="tag">{{tag}}</div>
                         {% endfor %}
                     </div>
