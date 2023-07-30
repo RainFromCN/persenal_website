@@ -4,7 +4,7 @@ from django.db import models
 # Create your models here.
 class Project(models.Model):
     # 项目的基本信息
-    prj_id = models.IntegerField(primary_key=True)
+    prj_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=200)
     brief = models.CharField(max_length=1000, default='')
     price = models.FloatField(default=9.9)
@@ -27,7 +27,7 @@ class ProjectTag(models.Model):
 
 class User(models.Model):
     # 用户基本信息
-    user_id = models.IntegerField(primary_key=True)
+    user_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=20)
     password = models.CharField(max_length=20)
     login_times = models.IntegerField(default=0)  # 累计登录次数

@@ -1,0 +1,85 @@
+.评论外框 {
+    border: solid 0.5px;
+    border-radius: 20px;
+    border-color: #eeeeee;
+    width: 60%;
+    margin-left: 20%;
+    /* background-color: bisque; */
+}
+
+
+.评论外框 .评论 {
+    display: table;
+    /* background-color:aquamarine; */
+    margin: 20px;
+    width: calc(100% - 40px);
+}
+
+.评论外框 .评论 .用户信息 {
+    display: inline-block;
+    width: 20%;
+    text-align: center;
+    vertical-align: middle;
+    /* background-color:aqua; */
+}
+
+.评论外框 .评论 .用户信息 .昵称 {
+    overflow:hidden; 
+    text-overflow:ellipsis; 
+    white-space:nowrap;
+    text-align:center;
+    color: #555555; 
+}
+
+.评论外框 .评论 .用户信息 .头像 {
+    text-align:center;
+}
+
+.评论外框 .评论 .用户信息 .头像 img {
+    width: 48px;
+    height: 48px;
+    border-radius: 24px;
+}
+
+.评论外框 .评论 .评论信息 {
+    display: inline-block;
+    vertical-align: middle;
+    width: 76%;
+    margin-left: 4%;
+    /* background-color: blue; */
+}
+
+.评论外框 .评论 .评论信息 .评论内容 {
+    color: #555555;
+}
+
+.评论外框 .评论 .用户信息 .评论日期 {
+    font-size: 0.5em;
+    color: #999999;
+    text-align:center;
+    padding-top: 5px;
+    overflow:hidden; 
+    text-overflow:ellipsis; 
+    white-space:nowrap;
+}
+
+.评论外框 .横画线 {
+    background-color: #EEEEEE;
+    margin-left: 2%;
+    margin-right: 2%;
+    height: 0.5px;
+}
+
+@media screen and (max-width: 960px) {
+    .评论外框 {
+        width: 70%;
+        margin-left: 15%;
+    }
+}
+
+@media screen and (max-width: 640px) {
+    .评论外框 {
+        width: 90%;
+        margin-left: 5%;
+    }
+}

@@ -10,6 +10,7 @@
         <title>{{project.name}}</title>
         <link rel="stylesheet" href="{% static 'project/css/basic.css' %}">
         <link rel="stylesheet" href="{% static 'project/css/header.css' %}">
+        <link rel="stylesheet" href="{% static 'project/css/comment.css' %}">
         <style>
             .intro {
                 margin: 0;
@@ -389,15 +390,41 @@
         </div>
         <img class="gradient" src="{% static 'project/image/gradient.png' %}" width=100%>
 
-        <div class="document">
-            {% if page0 %}
-            {% autoescape off %}
-            {{project.introduction}}
-            {% endautoescape off %}
-            {% elif page1 %}
-            {% elif page2 %}
-            {% endif %}
-        </div>
+
+        {% if page0 %}
+            <!--商品简介页面-->
+            <div class="document">
+                {% autoescape off %}
+                {{project.introduction}}
+                {% endautoescape off %}
+            </div>
+        {% elif page1 %}
+            <!--商品评价页面-->
+            <div class="评论外框">
+                {% for comm in comment %}
+                <div class="评论">
+                    <span class="用户信息">
+                        <div class="头像">
+                            <img src="{% static 'project/image/头像.jpg' %}"/>
+                        </div>
+                        <div class="昵称">
+                            {{comm.user.name}}
+                        </div>
+                        <div class="评论日期">
+                            {{comm.date}}
+                        </div>
+                    </span>
+                    <span class="评论信息">
+                        <div class="评论内容">
+                            {{comm.text}}
+                        </div>
+                    </span>
+                </div>
+                <div class="横画线"></div>
+                {% endfor %}
+            </div>
+        {% elif page2 %}
+        {% endif %}
 
         <div class="留白"></div>
     </body>

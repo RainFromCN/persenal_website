@@ -5,7 +5,7 @@ from .models import User
 import os
 
 
-from .models import Project, User, Purchase, Order
+from .models import Project, User, Purchase, Order, ProjectComment
 
 
 def read_file(file_name, chunk_size=512):
@@ -136,6 +136,11 @@ def detail(request, prj_id, page):
         if Purchase.objects.filter(user__name=context['username'], project__prj_id=prj_id).count():
             context['own'] = True
     context[f'page{page}'] = True
+
+    if page == 1:
+        # 商品评论页面
+        context['comment'] = ProjectComment.objects.filter(project=project)
+
     return render(request, "project/detail.html", context)
 
 
