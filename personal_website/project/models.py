@@ -1,13 +1,20 @@
 from django.db import models
 
 
+ALL_FIELDS = (
+    (1, '机器视觉'),
+    (2, '自然语言处理'),
+    (3, '软件开发'),
+)
+
+
 # Create your models here.
 class Project(models.Model):
     # 项目的基本信息
     prj_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=200)
-    brief = models.CharField(max_length=1000, default='')
-    price = models.FloatField(default=9.9)
+    brief = models.CharField(max_length=1000)
+    price = models.FloatField()
 
     # 当前项目的简介，论文以及教程
     introduction = models.TextField(default='introduction')
@@ -34,6 +41,11 @@ class User(models.Model):
 
     # 其他信息
     introduction = models.CharField(max_length=100, default='')  # 个人简介
+    tel = models.CharField(max_length=11, default='')  # 电话
+    bid_times = models.IntegerField(default=0)  # 竞标次数
+    win_times = models.IntegerField(default=0)  # 中标次数
+    pub_times = models.IntegerField(default=0)  # 发布需求次数
+    positive_times = models.IntegerField(default=0)  # 中标后得到好评的次数 
 
     def __str__(self):
         return f"[{self.user_id}]{self.name}"
