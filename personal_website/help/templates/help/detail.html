@@ -164,7 +164,7 @@
             <el-container style="border: 1px solid #eeeeee; box-shadow: 0 0 10px #eeeeee">
                 <el-row style="width: 100%;">
                     <el-col :span="2" >
-                        <el-image style="width: 100px; height:auto;" src="{% static 'help/image/logo.png' %}"></el-image>
+                        <el-image style="width: 200px; height:auto;" src="{% static 'help/image/logo.png' %}"></el-image>
                     </el-col>
                     <el-col :span="22" >
                         <el-header style="display:flex; align-items:center; justify-content: flex-end; font-size: 12px;">
@@ -261,7 +261,11 @@
                                 {% endfor %}
                             </div>
                         </el-col>
-                        <el-col :span="12">
+                        {% if follows.count == 0 %}
+                        <el-col :span="12" :offset="6">
+                        {% else %}
+                        <el-col :span="6">
+                        {% endif %}
                             <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);">
                                 <div style="padding: 20px;">
                                     <el-row>
