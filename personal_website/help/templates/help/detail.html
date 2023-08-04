@@ -7,7 +7,7 @@
     <head>
         <meta charset="utf-8"/>
         <meta name="viewport" content="width=device-width"/>
-        <title>{{request.title}}</title>
+        <title>{{rqst.title}}</title>
         <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
         <script src="https://unpkg.com/element-ui/lib/index.js"></script>
         <style>
@@ -89,8 +89,8 @@
                 </el-form>
             </el-dialog>
 
-            <el-dialog width="50%" :visible.sync="bid_visible" title="参与竞标">
-                <el-form ref="bidForm" :model="bidForm" :rules="bidRules" label-width="200px" class="ruleForm">
+            <el-dialog width="80%" :visible.sync="bid_visible" title="参与竞标">
+                <el-form ref="bidForm" :model="bidForm" :rules="bidRules" class="ruleForm">
                     <el-form-item label="竞标价" prop="bid">
                         <el-input placeholder="请输入竞标价" v-model="bidForm.bid" type="number" :min="0"></el-input>
                     </el-form-item>
@@ -196,7 +196,8 @@
 
             <el-container>
                 <el-main>
-                    <el-row :gutter="20">
+                    <el-row :gutter="20" type="flex" justify="center">
+                        {% if follows.count != 0 %}
                         <el-col :span="12">
                             <div style="background-color:blanchedalmon;">
                                 {% for follow in follows %}
@@ -261,10 +262,11 @@
                                 {% endfor %}
                             </div>
                         </el-col>
+                        {% endif %}
                         {% if follows.count == 0 %}
-                        <el-col :span="12" :offset="6">
+                        <el-col :xs="22" :sm="20" :md="18" :lg="16" :xl="14">
                         {% else %}
-                        <el-col :span="6">
+                        <el-col :span="12">
                         {% endif %}
                             <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);">
                                 <div style="padding: 20px;">
@@ -282,34 +284,34 @@
                                             </div>
                                         </el-col>
                                     </el-row>
-                                    <div style="margin-top: 20px;">
+                                    <div style="margin-top: 20px; margin-bottom: 20px; font-size:12px;">
+                                        <span>{{rqst.timedelta}}</span>
+                                        <el-divider direction="vertical"></el-divider>
+                                        <span>{{rqst.num_bid}} 人竞标</span>
+                                        <el-divider direction="vertical"></el-divider>
+                                        <span>最低竞价 {{rqst.lowest_bid}} 元</span>
+                                    </div>
+                                    <div>
                                         {% if rqst.publisher.name != username %}
                                         <el-button type="primary" @click="bid_visible = true">参与竞标</el-button>
                                         {% endif %}
                                     </div>
                                 </div>
-
+                                <el-divider>发布者信息</el-divider>
                                 <div style="padding: 20px;">
-                                    <el-collapse v-model="activeNames" @change="handleChange">
-                                        <el-collapse-item title="发布者信息" name="1">
-                                            <div style="padding: 20px;">
-                                                <div style="display: flex; align-items:center;">
-                                                    <el-avatar :size="small" :src="circleUrl"></el-avatar>
-                                                    <span style="margin-left: 10px; margin-right: 10px;">{{rqst.publisher.name}}</span>
-                                                    <el-divider direction="vertical"></el-divider>
-                                                    <span style="font-size: 12px; margin-left: 10px;">共发布 {{rqst.publisher.pub_times}} 个需求</span> 
-                                                </div>
-                                                <div style="margin-top: 20px;">
-                                                    <div style="font-size: 13px">个人简介：{{rqst.publisher.introduction}}</div>
-                                                </div>
-                                            </div>
-                                        </el-collapse-item>
-                                        <el-collapse-item title="需求描述" name="2">
-                                            <div style="padding: 20px; font-size: 13px">
-                                                <span>{{rqst.content}}</span>
-                                            </div>
-                                        </el-collapse-item>
-                                    </el-collapse>
+                                    <div style="display: flex; align-items:center;">
+                                        <el-avatar :size="small" :src="circleUrl"></el-avatar>
+                                        <span style="margin-left: 10px; margin-right: 10px;">{{rqst.publisher.name}}</span>
+                                        <el-divider direction="vertical"></el-divider>
+                                        <span style="font-size: 12px; margin-left: 10px;">共发布 {{rqst.publisher.pub_times}} 个需求</span> 
+                                    </div>
+                                    <div style="margin-top: 20px;">
+                                        <div style="font-size: 13px">个人简介：{{rqst.publisher.introduction}}</div>
+                                    </div>
+                                </div>
+                                <el-divider>需求描述</el-divider>
+                                <div style="padding: 20px; font-size: 13px">
+                                    <span>{{rqst.content}}</span>
                                 </div>
                             </div>
                         </el-col>
@@ -323,90 +325,266 @@
     <script src="https://unpkg.com/element-ui/lib/index.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
-        import { headerData, headerAPI, circleUrl } from '../../static/help/javascript/help/header.js'
-
         new Vue({
-            el: '#app',
-            data: function() {
-                return {
-                    // 杂项
-                    circleUrl: circleUrl,
+          el: '#app',
+          data: function() {
+            var user_tel = "{{usr.tel}}";
+            var user_introduction = "{{usr.introduction}}";
 
-                    headerData: headerData,    
+            return {
+                // 杂项
+                circleUrl: "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png",
 
-                    pageData: {
-                        bid: {
-                            visible: false,
-                            bid: '',
-                            notify_new_bids: true,
-                            rules: {
-                                bid: [
-                                    { required: true, message: '请输入竞标价', trigger: 'blur' },
-                                ],
-                            },
-                        },
-                    },
-                }
-            },
+                // 与注册相关
+                'signup_visible': false,
+                'signup_username': '',
+                'signup_password': '',
+                'signup_confirm': '',
 
-            methods: {
-                // header需要的一些API
-                signupSubmit() { headerAPI.signupSubmit.call(this); },
-                loginSubmit() { headerAPI.loginSubmit.call(this); },
-                exitSubmit() { headerAPI.exitSubmit.call(this); },
-                requestSubmit() { headerAPI.requestSubmit.call(this); },
-                editSubmit() { headerAPI.editSubmit.call(this); },
+                // 与登录相关
+                'login_visible': false,
+                'login_username': '',
+                'login_password': '',
 
-                bidSubmit() {
-                    const data = {
-                        bid: this.pageData.bid.bid,
-                        notify_new_bids: this.pageData.bid.notify_new_bids,
-                    }
-                    const headers = {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    }
-                    var request_id = "{{rqst.id}}"
-                    this.$refs['bidForm'].validate((valid) => {
-                        if (valid) {
-                            axios.post('/help/bidding/' + request_id + "/", data, { headers })
-                            .then(response => {
-                                if (response.data.message) {
-                                    this.$message.error(response.data.message)
-                                }
-                                else if (response.data.success) {
-                                    this.$message({
-                                        message: '竞标成功',
-                                        type: 'success',
-                                    })
-                                    this.pageData.bid.visible = false;
-                                }
-                            })
-                        }
-                    })
+                // 与发布需求相关
+                'form_visible': false,
+
+                // 与竞标相关
+                'bid_visible': false,
+
+                // 与个人资料相关
+                'edit_visible': false,
+                'browse_req_visible': false,
+                'browse_bid_visible': false,
+                
+                // 与合作相关
+                'cooperation_visible': false,
+                active_step: 0,
+
+                ruleForm: {
+                    field: '',
+                    type: '',
+                    title: '',
+                    detail: '',
                 },
 
-                cooSubmit(id) {
-                    const data = {
-                        id: id,
-                    }
-                    const headers = {
-                        'Content-Type': 'application/x-www-form-urlencoded'
-                    }
-                    axios.post('/help/cooperation/', data, { headers })
-                    .then(response => {
-                        if (response.data.message) {
-                            this.$message.error(response.data.message)
-                        }
-                        else if (response.data.success) {
-                            this.$message({
-                                message: '合作关系建立成功',
-                                type: 'success',
-                            })
-                            location.reload()
-                        }
-                    })
+                rules: {
+                    field: [
+                        { required: true, message: '请选择所属的领域', trigger: 'change' },
+                    ],
+                    type: [
+                        { required: true, message: '请选择活动区域', trigger: 'blur' },
+                    ],
+                    title: [
+                        { required: true, message: '请输入需求的标题', trigger: 'blur' },
+                        { min: 8, max: 20, message: '长度在 8 到 20 个字符之间', trigger: 'blur' },
+                    ],
+                    detail: [
+                        { required: true, message: '请输入详细需求', trigger: 'blur' },
+                    ],
+                },
+
+                bidForm: {
+                    bid: '',
+                    notify_new_bids: true,
+                },
+
+                editForm: {
+                    tel: user_tel,
+                    introduction: user_introduction,
+                },
+
+                bidRules: {
+                    bid: [
+                        { required: true, message: '请输入竞标价', trigger: 'blur' },
+                    ],
+                },
+                editRules: {
+                    tel: [
+                        { required: true, message: '请输入手机号码', trigger: 'blur' },
+                        { min: 11, max: 11, message: '长度为 11 位', trigger: 'change' },
+                    ],
+                    introduction: [
+                        { required: true, message: '请输入个人简介', trigger: 'blur' },
+                        { min: 20, max: 100, message: '长度在 20 到 100 个字符之间', trigger: 'change' },
+                    ],
                 }
             }
+          
+          },
+
+          methods: {
+            signupSubmit() {
+                const data = {
+                    signup_username: this.signup_username,
+                    signup_password: this.signup_password,
+                    signup_confirm: this.signup_confirm,
+                }
+                const headers = {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+                axios.post('/help/signup/', data, { headers })
+                .then(response => {
+                    // 处理返回后台的数据
+                    if (response.data.message) {
+                        this.$message.error(response.data.message)
+                    }
+                    else if (response.data.success) {
+                        this.$message.success('注册成功')
+                        this.signup_visible = false;
+                        location.reload()
+                    }
+                })
+                .catch(error => {
+                    // 处理错误
+                })
+            },
+
+            loginSubmit() {
+                const data = {
+                    login_username: this.login_username,
+                    login_password: this.login_password,
+                }
+                const headers = {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+                axios.post('/help/login/', data, { headers })
+                .then(response => {
+                    if (response.data.message) {
+                        this.$message.error(response.data.message)
+                    }
+                    else if (response.data.success) {
+                        this.login_visible = false;
+                        location.reload()
+                    }
+                })                
+                .catch(error => {
+                    // 处理错误
+                })
+            },
+
+            exitSubmit() {
+                const data = {}
+                const headers = {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+                axios.post('/help/exit/', data, { headers })
+                .then(response => {
+                    location.reload()
+                })
+                .catch(error => {
+                    // 处理错误
+                })
+            },
+
+            formSubmit() {
+                const data = {
+                    field: this.ruleForm.field,
+                    type: this.ruleForm.type,
+                    title: this.ruleForm.title,
+                    detail: this.ruleForm.detail,
+                }
+                const headers = {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+
+                this.$refs['ruleForm'].validate((valid) => {
+                    if (valid) {
+                        axios.post('/help/request_publish/', data, { headers })
+                        .then(response => {
+                            if (response.data.message) {
+                                this.$message.error(response.data.message)
+                            }
+                            else if (response.data.success) {
+                                this.$message({
+                                    message: '发布成功，请在个人页面进行查看',
+                                    type: 'success',
+                                })
+                                this.form_visible = false;
+                            }
+                        })
+                    }
+                })
+            },
+
+            bidSubmit() {
+                const data = {
+                    bid: this.bidForm.bid,
+                    notify_new_bids: this.bidForm.notify_new_bids,
+                }
+                const headers = {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+                var request_id = "{{rqst.id}}"
+                this.$refs['bidForm'].validate((valid) => {
+                    if (valid) {
+                        axios.post('/help/bidding/' + request_id + "/", data, { headers })
+                        .then(response => {
+                            if (response.data.message) {
+                                this.$message.error(response.data.message)
+                            }
+                            else if (response.data.success) {
+                                this.$message({
+                                    message: '竞标成功',
+                                    type: 'success',
+                                })
+                                this.bid_visible = false;
+                            }
+                        })
+                    }
+                })
+            },
+
+            editSubmit() {
+                const data = {
+                    tel: this.editForm.tel,
+                    introduction: this.editForm.introduction,
+                }
+                const headers = {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+
+                this.$refs['editForm'].validate((valid) => {
+                    if (valid) {
+                        axios.post('/help/edit_information/', data, { headers })
+                        .then(response => {
+                            if (response.data.message) {
+                                this.$message.error(response.data.message)
+                            }
+                            else if (response.data.success) {
+                                this.$message({
+                                    message: '个人资料修改成功',
+                                    type: 'success',
+                                })
+                                this.edit_visible = false;
+                            }
+                        })
+                    }
+                })
+            },
+
+            cooSubmit(id) {
+                const data = {
+                    id: id,
+                }
+                const headers = {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+                axios.post('/help/cooperation/', data, { headers })
+                .then(response => {
+                    if (response.data.message) {
+                        this.$message.error(response.data.message)
+                    }
+                    else if (response.data.success) {
+                        this.$message({
+                            message: '合作关系建立成功',
+                            type: 'success',
+                        })
+                        location.reload()
+                    }
+                })
+            }
+          }
         })
       </script>
 </html>
