@@ -1,13 +1,6 @@
 from django.db import models
 
 
-ALL_FIELDS = (
-    (1, '机器视觉'),
-    (2, '自然语言处理'),
-    (3, '软件开发'),
-)
-
-
 # Create your models here.
 class Project(models.Model):
     # 项目的基本信息

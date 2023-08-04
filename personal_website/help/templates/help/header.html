@@ -1,0 +1,33 @@
+<!--Header-->
+<el-container style="border: 1px solid #eeeeee; box-shadow: 0 0 10px #eeeeee">
+    <el-row style="width: 100%;">
+        <el-col :span="2" >
+            <el-image style="width: 200px; height:auto;" src="{% static 'help/image/logo.png' %}"></el-image>
+        </el-col>
+        <el-col :span="22" >
+            <el-header style="display:flex; align-items:center; justify-content: flex-end; font-size: 12px;">
+                {% if usr is None %}
+                <el-button type="text" @click="signup_visible = true">注册</el-button>
+                <el-button type="text" @click="login_visible = true">登录</el-button>
+                {% else %}
+                <el-dropdown>
+                    <div style="display: flex; align-items: center;" class="el-dropdown-link">
+                        <el-avatar :size="small" :src="circleUrl"></el-avatar>
+                        <span style="margin-left: 10px">{{usr.name}}</span>
+                        <i class="el-icon-arrow-down el-icon--right"></i>
+                    </div>
+                    <el-dropdown-menu slot="dropdown">
+                        <el-dropdown-item><el-button type="text" @click="browse_req_visible = true">我的需求</el-button></el-button></el-dropdown-item>
+                        <el-dropdown-item><el-button type="text" @click="browse_bid_visible = true">我的竞标</el-button></el-button></el-dropdown-item>
+                        <el-dropdown-item><el-button type="text" @click="edit_visible = true">个人资料</el-button></el-dropdown-item>
+                        <el-dropdown-item><el-button type="text" @click="exitSubmit">退出</el-button></el-dropdown-item>
+                    </el-dropdown-menu>
+                </el-dropdown>
+                {% endif %}
+                <template>
+                    <el-button style="margin-left: 20px" @click="form_visible = true">发布需求</el-button>
+                </template>
+            </el-header>
+        </el-col>
+    </el-row>
+</el-container>

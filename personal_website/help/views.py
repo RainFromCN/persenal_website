@@ -2,62 +2,34 @@ from django.shortcuts import render,redirect
 from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.utils import timezone
+
+
+import json
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 from project.models import User, ALL_FIELDS
-from .models import Request, REQUEST_TYPE, RequestFollows
+from .models import Request, REQUEST_TYPE, RequestFollows, Procedure, ProcedureStep
 
 
-current_field = 0  # 用来记录当前的field
+from .utils import (
+    check_login, 
+    index_data, 
+    logout, 
+    get_user,
+    index_detail,
+)
 
 
 # Create your views here.
 @csrf_exempt
 def index(request):
-    global current_field
+    return render(request, "help/index.html", index_data(request))
 
-    if request.method == 'POST':
-        current_field = int(request.POST.get('field')) - 1
-        return JsonResponse({})
-    
-    context = {
-        'request': Request.objects.filter(field=ALL_FIELDS[current_field][1], state=0).order_by('datetime').reverse()
-    }
-    
-    # 计算时间
-    now = timezone.now()
-    for rqst in context['request']:
-        delta = now - rqst.datetime.astimezone(timezone.utc)
-        delta_days = delta.days
-        delta_seconds = delta.seconds
-        if delta_days > 365:
-            rqst.timedelta = f"{delta_days // 365} 年前发布"
-        elif delta_days > 30:
-            rqst.timedelta = f"{delta_days // 30} 月前发布"
-        elif delta_days > 0:
-            rqst.timedelta = f"{delta_days} 天前发布"
-        elif delta_seconds > 3600:
-            rqst.timedelta = f"{delta_seconds // 3600} 小时前发布"
-        else:
-            rqst.timedelta = "刚刚发布"
-    
-    # 查看用户登录状态
-    if 'username' in request.session:
-        context['username'] = request.session['username']
-        context['usr'] = User.objects.filter(name=context['username']).first()
 
-        # 加入我发布的需求和竞标
-        my_requests = Request.objects.filter(publisher=context['usr']).reverse()
-        my_follows = RequestFollows.objects.filter(user=context['usr']).reverse()
-        context.update({
-            'my_requests': my_requests,
-            'my_follows': my_follows,
-        })
-
-    context['all_fields'] = ALL_FIELDS
-    context['all_request_type'] = REQUEST_TYPE
-    context['current_field'] = current_field + 1
-    return render(request, "help/index.html", context)
+@csrf_exempt
+def detail(request, r_id):
+    return render(request, "help/detail.html", index_detail(request, r_id))
 
 
 @csrf_exempt
@@ -108,19 +80,17 @@ def login(request):
 
 @csrf_exempt
 def exit(request):
-    if 'username' in request.session:
-        del request.session['username']
-    return JsonResponse({})
+    logout(request)
+    return JsonResponse({'success': True})
 
 
 @csrf_exempt
 def request_publish(request):
-    if 'username' not in request.session:
-        return JsonResponse({'message': '请先登录'})
-    user = User.objects.filter(name=request.session['username']).first()
 
-    if request.POST.get('title') == '' or request.POST.get('detail') == '' or request.POST.get('field') == '' or request.POST.get('type') == '':
-        return JsonResponse({'message', '请按照要求的格式填写'})
+    # 获取发布的用户
+    if check_login(request) is False:
+        return JsonResponse({'message': '请先登录'})
+    user = get_user(request)
 
     # 创建新的需求信息
     rqst = Request(
@@ -140,49 +110,14 @@ def request_publish(request):
 
 
 @csrf_exempt
-def detail(request, request_id):
-    rqst = Request.objects.filter(id=request_id).first()
-    follows = RequestFollows.objects.filter(request=rqst).order_by('state').reverse()
-    context = {
-        'follows': follows,
-        'rqst': rqst,
-        'all_fields': ALL_FIELDS,
-        'all_request_type': REQUEST_TYPE,
-    }
-    delta = timezone.now() - rqst.datetime.astimezone(timezone.utc)
-    delta_days = delta.days
-    delta_seconds = delta.seconds
-    if delta_days > 365:
-        rqst.timedelta = f"{delta_days // 365} 年前发布"
-    elif delta_days > 30:
-        rqst.timedelta = f"{delta_days // 30} 月前发布"
-    elif delta_days > 0:
-        rqst.timedelta = f"{delta_days} 天前发布"
-    elif delta_seconds > 3600:
-        rqst.timedelta = f"{delta_seconds // 3600} 小时前发布"
-    else:
-        rqst.timedelta = "刚刚发布"
-
-    if 'username' in request.session:
-        context['username'] = request.session['username']
-        context['usr'] = User.objects.filter(name=context['username']).first()
-        # 加入我发布的需求和竞标
-        my_requests = Request.objects.filter(publisher=context['usr']).reverse()
-        my_follows = RequestFollows.objects.filter(user=context['usr']).reverse()
-        context.update({
-            'my_requests': my_requests,
-            'my_follows': my_follows,
-        })
-    return render(request, "help/detail.html", context)
-
-
-@csrf_exempt
-def bidding(request, request_id):
-    if 'username' not in request.session:
+def bidding(request, r_id):
+    # 获取投标用户和带投标的需求
+    if check_login(request) is False:
         return JsonResponse({'message': '请先登录'})
-    user = User.objects.filter(name=request.session['username']).first()
-    rqst = Request.objects.filter(id=request_id).first()
+    user = get_user(request)
+    rqst = Request.objects.get(id=r_id)
 
+    # 检查是否合法
     if user.tel == '' or user.introduction == '':
         return JsonResponse({'message': '请先完善个人资料'})
     
@@ -210,16 +145,19 @@ def bidding(request, request_id):
 
 @csrf_exempt
 def edit_information(request):
-    if 'username' not in request.session:
+
+    # 检查用户是否已经登录
+    if check_login(request) is False:
         return JsonResponse({'message': '请先登录'})
-    user = User.objects.filter(name=request.session['username']).first()
+    user = get_user(request)
     
+    # 从前端获取数据
     tel = request.POST.get('tel')
     intro = request.POST.get('introduction')
 
+    # 给数据库添加新的项
     user.tel = tel
     user.introduction = intro
-
     user.save()
 
     return JsonResponse({'success': True})
@@ -227,10 +165,9 @@ def edit_information(request):
 
 @csrf_exempt
 def cooperation(request):
-    print(request.POST.get('id'))
     # 获取follow
     follow_id = request.POST.get('id')
-    follow = RequestFollows.objects.filter(id=follow_id).first()
+    follow = RequestFollows.objects.get(id=follow_id)
     follow.state = 1
     follow.save()
 
@@ -241,3 +178,30 @@ def cooperation(request):
     follow.user.save()
 
     return JsonResponse({"success": True})
+
+
+@csrf_exempt
+def create_procedures(request):
+    if check_login(request) is False:
+        return JsonResponse({'message': '请先登录后再进行操作'})
+    
+    # 创建一个流程
+    procedure = Procedure(owner=User.objects.filter(name=request.session['username']).first())
+
+    # 给这个流程内添加步骤
+    sum_pay = 0
+    step_list = []
+    for title, discription, pay in request.POST.get('procedure_steps'):
+        step_list.append(ProcedureStep(procedure=procedure, title=title, discription=discription, pay=int(pay)))
+        sum_pay += int(pay)
+
+    # 检查支付金额比例是否合法
+    if sum_pay != 100:
+        return JsonResponse({'message': '所有步骤支付比例相加须为100%'})
+    
+    # 创建数据库条目
+    procedure.save()
+    for step in step_list:
+        step.save()
+
+    return JsonResponse({'success': True})
