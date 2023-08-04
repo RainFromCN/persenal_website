@@ -8,6 +8,10 @@ import json
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
+import json
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+
 from project.models import User, ALL_FIELDS
 from .models import Request, REQUEST_TYPE, RequestFollows, Procedure, ProcedureStep
 
