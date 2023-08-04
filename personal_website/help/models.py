@@ -1,13 +1,7 @@
 from django.db import models
 
-from project.models import User, ALL_FIELDS
-
-
-REQUEST_TYPE = (
-    (1, '作业指导'),
-    (2, '工程外包'),
-    (3, '科研指导'),
-)
+from project.models import User
+from .utils import REQUEST_TYPE, ALL_FIELDS
 
 
 # Create your models here.
@@ -25,7 +19,19 @@ class Request(models.Model):
     num_bid = models.IntegerField(default=0)  # 有多少人竞标
     num_comment = models.IntegerField(default=0)  # 有多少人评论
     lowest_bid = models.CharField(default='-', max_length=10)  # 当前最低价
+
+
+class Procedure(models.Model):
+    id = models.AutoField(primary_key=True)
+    owner = models.ForeignKey(to=User, on_delete=models.CASCADE)  # 流程所有者
     
+
+class ProcedureStep(models.Model):
+    procedure = models.ForeignKey(to=Procedure)
+    title = models.CharField(max_length=20)  # 步骤的标题
+    discription = models.CharField(max_length=100)  # 步骤的详细解读
+    pay = models.IntegerField()  # 需要支付的百分比
+
 
 class RequestFollows(models.Model):
     id = models.AutoField(primary_key=True) # 跟随的ID
