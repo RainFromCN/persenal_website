@@ -89,8 +89,8 @@
                 </el-form>
             </el-dialog>
 
-            <el-dialog width="50%" :visible.sync="bid_visible" title="参与竞标">
-                <el-form ref="bidForm" :model="bidForm" :rules="bidRules" label-width="200px" class="ruleForm">
+            <el-dialog width="80%" :visible.sync="bid_visible" title="参与竞标">
+                <el-form ref="bidForm" :model="bidForm" :rules="bidRules" class="ruleForm">
                     <el-form-item label="竞标价" prop="bid">
                         <el-input placeholder="请输入竞标价" v-model="bidForm.bid" type="number" :min="0"></el-input>
                     </el-form-item>
@@ -196,7 +196,8 @@
 
             <el-container>
                 <el-main>
-                    <el-row :gutter="20">
+                    <el-row :gutter="20" type="flex" justify="center">
+                        {% if follows.count != 0 %}
                         <el-col :span="12">
                             <div style="background-color:blanchedalmon;">
                                 {% for follow in follows %}
@@ -261,10 +262,11 @@
                                 {% endfor %}
                             </div>
                         </el-col>
+                        {% endif %}
                         {% if follows.count == 0 %}
-                        <el-col :span="12" :offset="6">
+                        <el-col :xs="22" :sm="20" :md="18" :lg="16" :xl="14">
                         {% else %}
-                        <el-col :span="6">
+                        <el-col :span="12">
                         {% endif %}
                             <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);">
                                 <div style="padding: 20px;">

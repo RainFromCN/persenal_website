@@ -36,10 +36,3 @@ class RequestFollows(models.Model):
 
     # 状态
     state = models.IntegerField(default=0)  # 竞标状态，0表示未中标，1表示中标
-    
-
-class RequestFollowsChatMessage(models.Model):
-    publisher = models.ForeignKey(to=User, on_delete=models.CASCADE)
-    follow = models.ForeignKey(to=RequestFollows, on_delete=models.CASCADE)
-    text = models.CharField(max_length=200)  # 发表的文字
-

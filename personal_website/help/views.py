@@ -4,10 +4,6 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 
-import json
-from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
-
 from project.models import User, ALL_FIELDS
 from .models import Request, REQUEST_TYPE, RequestFollows
 
