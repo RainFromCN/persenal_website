@@ -19,4 +19,5 @@ urlpatterns = [
     path("submit/request_document/", views.submit_request_document, name='submit_request_document'),
     path("submit/entry_next_step/", views.entry_next_step, name='entry_next_step'),
     path("submit/finish_date/", views.submit_finish_date, name='submit_finish_date'),
+    path("submit/fix_finish_date/", views.submit_fix_finish_date, name='submit_fix_finish_date'),
 ]

@@ -63,8 +63,9 @@ class Cooperation(models.Model):
     request_document_update = models.BooleanField(default=False)  # 需求文档是否曾被更新过
 
     # 有关项目验收
-    predict_finish_date = models.CharField(default='', max_length=20) # 项目预计完成日期
-
+    predict_finish_date = models.CharField(default='', max_length=20, blank=True) # 项目预计完成日期
+    predict_finish_date_fix = models.CharField(default='', max_length=20, blank=True)  # 提交的修改
+    predict_finish_date_fix_state = models.IntegerField(default=0)  # 0表示未做出响应，1表示同意，2表示拒绝
 
 class CooperationMessage(models.Model):
     cooperation = models.ForeignKey(to=Cooperation, on_delete=models.CASCADE)

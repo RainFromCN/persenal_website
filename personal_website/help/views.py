@@ -332,6 +332,11 @@ def cooperation(request, cooperation_id):
     context = {
         'cooperation': Cooperation.objects.get(id=cooperation_id)
     }
+    if (finish_date := context['cooperation'].predict_finish_date) != '':
+        finish_date = timezone.datetime(*[int(x) for x in finish_date.split('-')])
+        if timezone.datetime.today() > finish_date:
+            days = (timezone.datetime.today() - finish_date).days
+            context['overdue'] = days
     if 'username' in request.session:
         context['usr'] = User.objects.get(name=request.session['username'])
     print(context['cooperation'].request_document)
@@ -387,17 +392,42 @@ def entry_next_step(request):
 def submit_finish_date(request):
 
     # 从前端获取数据
-    finish_date = request.POST.get('finish_date')
+    finish_date = request.POST.get('finish_date')[:10]
     cooperation_id = request.POST.get('cooperation_id')
-    date_parts = [int(x) for x in finish_date.split('T')[0].split('-')]
+    date_parts = [int(x) for x in finish_date.split('-')]
     date = timezone.datetime(*date_parts) + timezone.timedelta(days=1)
     if timezone.datetime.today() > date:
         return JsonResponse({'message': '预计完成日期应该在今天之后'})
+    
+    # 响应字典
+    response = {'success': True}
 
-    # 保存完成日期
+    # 设置相应字段
     cooperation = Cooperation.objects.get(id=int(cooperation_id))
-    cooperation.predict_finish_date = f"{date}"
+    response['fix'] = True
+    cooperation.predict_finish_date_fix = (f"{date}")[:10]
+    cooperation.predict_finish_date_fix_state = 0
+
+    # 保存日期
+    cooperation.save()
+
+    return JsonResponse(response)
+    
+
+@csrf_exempt
+def submit_fix_finish_date(request):
+    # 从前端获取数据
+    agree = int(request.POST.get('agree'))
+    cooperation_id = request.POST.get('cooperation_id')
+
+    # 设置相应字段
+    cooperation = Cooperation.objects.get(id=int(cooperation_id))
+    if agree == 1:
+        cooperation.predict_finish_date = cooperation.predict_finish_date_fix
+        cooperation.predict_finish_date_fix_state = 1
+    elif agree == 0:
+        cooperation.predict_finish_date_fix_state = 2
+    cooperation.predict_finish_date_fix = ''
     cooperation.save()
 
     return JsonResponse({'success': True})
-    

@@ -43,6 +43,16 @@
                 <div v-html="html_document" class="preview_document"></div>
             </el-dialog>
 
+            <el-dialog title="请您确认" :visible.sync="step2_confirm_visible">
+                <div style="font-size: 14px; color:#606266">请您确认已经完成，若您进入验收环节后，在7天之内没有主动参与验收，则平台会认为您有违约现象，并自动从押金中扣除部分违约金</div>
+                <template>
+                    <div style="display: flex; align-items: center; justify-content: center; padding-top:20px;">
+                        <el-button type="primary" @click="entryNextSubmit">确认完成</el-button>
+                        <el-button plain @click="step2_confirm_visible = false">取消</el-button>
+                    </div>
+                </template>
+            </el-dialog>
+
             <div style="width: 70vw;">
                 <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin: 20px; padding: 20px;">
                     <el-steps :active="active_step" align-center finish-status="success">
@@ -94,8 +104,8 @@
                     {% elif cooperation.active == 1 %}
                     <!--第二步-->
                     {% if cooperation.follow.user == usr %}
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 请您主动与用户交流，并慎重填写预计完成时期</div>
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 填写完成后应在规定日期内完成开发，完成后点击“进入下一环节”</div>
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 请您主动与用户交流，并填写预计完成时期，提交后须经对方同意才可生效</div>
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 对方同意后应在规定日期内完成开发，完成后点击“进入下一环节”</div>
                     <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 若超过预计完成日期后仍未点击“进入下一环节”，则从押金扣除相应违约金</div>
 
                     <template>
@@ -104,20 +114,60 @@
                           <el-date-picker v-model="finish_date" type="date" placeholder="选择日期" :timezone='null'>
                           </el-date-picker>
                         </div>
-                        <div v-if="finish_date === ''">
-                            <el-button type="primary" disabled>提交日期</el-button>
+                        <div style="display: flex; align-items: center;">
+                            <div v-if="finish_date === ''">
+                                <el-button type="primary" @click="finishDateSubmit">提交日期</el-button>
+                                
+                            </div>
+                            <div v-else>
+                                <el-button type="primary" @click="finishDateSubmit">提交修改日期</el-button>
+                            </div>
+                            {% if cooperation.predict_finish_date_fix_state == 0 and cooperation.predict_finish_date_fix != '' %}
+                            <el-divider direction="vertical"></el-divider>
+                            <span style="font-size: 14px; color:#909399;"><i class="el-icon-info"></i> 您之前提交的申请尚未被对方查看，请主动联系对方</span>
+                            {% elif cooperation.predict_finish_date_fix_state == 1 %}
+                            <el-divider direction="vertical"></el-divider>
+                            <span style="font-size: 14px; color:rgb(49, 203, 113);"><i class="el-icon-success"></i> 您之前提交的申请已被对方同意</span>
+                            {% elif cooperation.predict_finish_date_fix_state == 2 %}
+                            <el-divider direction="vertical"></el-divider>
+                            <span style="font-size: 14px; color:rgb(203, 49, 49);"><i class="el-icon-error"></i> 您之前提交的申请已被对方拒绝，请沟通后重新提交</span>
+                            {% endif %}
                         </div>
-                        <div v-else>
-                            <el-button type="primary" @click="finishDateSubmit">提交日期</el-button>
-                        </div>
-                        
+                        {% if overdue %}
+                        <div style="font-size: 14px; color:rgb(203, 49, 49); margin-top: 20px;"><i class="el-icon-error"></i> 您已逾期 {{overdue}} 天，平台将从押金中扣除违约金</div>
+                        {% endif %}
                     </template>
                     <div style="margin-top:20px; display:flex; justify-content: center; align-items:center;">
                         <span>
-                            <el-button type="success" plain @click="entryNextSubmit">进入下一环节</el-button>
+                            <el-button type="success" plain @click="step2_confirm_visible = true">进入下一环节</el-button>
                         </span>
                     </div>
                     {% else %}
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 请您与对方协商预计完成日期，沟通后等待对方提交预计完成日期</div>
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 对方提交后，您可以在工作台点击“同意”或“拒绝”</div>
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 若您同意对方提交的日期，则可耐心等待对方完成，完成之后会自动进入下一环节</div>
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 若对方未按时完成，则为了保护您的利益，平台会扣除对方违约金</div>
+
+                    <div style="display:flex; align-items: center; margin-bottom:20px">
+                        <span style="font-size: 14px; color:#909399; margin-right: 20px">对方预计完成日期为</span>
+                        {% if cooperation.predict_finish_date == '' %}
+                        <span><el-input placeholder="对方尚未指定" disabled suffix-icon="el-icon-date"></el-input></span>
+                        {% else %}
+                        <span><el-input placeholder="{{cooperation.predict_finish_date}}" disabled suffix-icon="el-icon-date"></el-input></span>
+                        {% endif %}
+                    </div>
+                    {% if cooperation.predict_finish_date_fix != '' %}
+                    <div style="display:flex; align-items: center;">
+                        <span style="font-size: 14px; color:#909399"><i class="el-icon-warning"></i> 对方申请修改预计完成日期为</span>
+                        <span style="margin-left: 20px; margin-right: 20px"><el-input placeholder="{{cooperation.predict_finish_date_fix}}" disabled suffix-icon="el-icon-date"></el-input></span>
+                        <el-button plain @click="fixSubmit(1)">同意</el-button>
+                        <el-button type="danger" @click="fixSubmit(0)">拒绝</el-button>
+                    </div>
+                    {% endif %}
+                    {% if overdue %}
+                    <div style="font-size: 14px; color:rgb(203, 49, 49); margin-top:20px"><i class="el-icon-error"></i> 对方已逾期 {{overdue}} 天，平台将扣除对方违约金</div>
+                    {% endif %}
+
                     {% endif %}
                     <!--/第二步-->
                     {% endif %}
@@ -192,6 +242,7 @@
                     document_visible: false,
                     html_document: '',
                     finish_date: "{{cooperation.predict_finish_date}}",
+                    step2_confirm_visible: false,
                 }
             },
 
@@ -268,7 +319,39 @@
                             this.$message.error(response.data.message)
                         }
                         else if (response.data.success) {
-                            this.$message.success('成功提交预计完成日期')                        }
+                            if (response.data.fix) {
+                                this.$message.success('已提交，对方同意后可直接生效')
+                            }                     
+                            else {
+                                this.$message.success('成功提交预计完成日期')
+                            }
+                            location.reload()
+                        }
+                    })
+                },
+
+                fixSubmit: function(agree) {
+                    const data = {
+                        agree: agree,
+                        cooperation_id: "{{cooperation.id}}",
+                    }
+                    const headers = {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                    axios.post('/help/submit/fix_finish_date/', data, { headers })
+                    .then(response => {
+                        if (response.data.message) {
+                            this.$message.error(response.data.message)
+                        }
+                        else if (response.data.success) {
+                            if (data.agree) {
+                                this.$message.success('已同意对方的修改申请')
+                            }                     
+                            else {
+                                this.$message.success('已拒绝对方的修改申请')
+                            }
+                            location.reload()
+                        }
                     })
                 }
             },
