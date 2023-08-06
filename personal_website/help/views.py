@@ -3,9 +3,19 @@ from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
+import pytz
+
+from markdown import markdown
 
 from project.models import User, ALL_FIELDS
-from .models import Request, REQUEST_TYPE, RequestFollows
+from .models import (
+    Request, 
+    REQUEST_TYPE,
+    RequestFollows,
+    Procedure,
+    ProcedureStep,
+    Cooperation,
+)
 
 
 current_field = 0  # 用来记录当前的field
@@ -86,6 +96,44 @@ def signup(request):
             user = User(**kwargs)
             user.save()
             request.session['username'] = username
+
+            # 为用户创建默认流程
+            procedure = Procedure(name='工程外包流程（平台提供）', owner=user)
+            procedure.save()
+            steps = [
+                ProcedureStep(procedure=procedure, title='确认需求', discription='双方确认详细需求清单，并提交给平台', pay=0),
+                ProcedureStep(procedure=procedure, title='服务商完成初稿', discription='快速实现核心功能', pay=0),
+                ProcedureStep(procedure=procedure, title='初稿验收合格', discription='若验收满意需支付30%费用，不满意则无需支付并终止服务', pay=30),
+                ProcedureStep(procedure=procedure, title='服务商完成终稿', discription='实现全部功能', pay=0),
+                ProcedureStep(procedure=procedure, title='终稿验收合格', discription='验收满意需再支付40%的费用', pay=70),
+            ]
+            for step in steps:
+                step.save()
+            
+            procedure = Procedure(name='作业指导流程（平台提供）', owner=user)
+            procedure.save()
+            steps = [
+                ProcedureStep(procedure=procedure, title='确认需求', discription='双方确认详细需求清单，并提交给平台', pay=0),
+                ProcedureStep(procedure=procedure, title='服务商完成作业', discription='实现作业要求的各项功能', pay=0),
+                ProcedureStep(procedure=procedure, title='作业验收合格', discription='查看完成的作业是否符合要求，不满意则无需支付并终止服务', pay=30),
+                ProcedureStep(procedure=procedure, title='服务商讲解', discription='针对作业实现细节进行辅导讲解', pay=0),
+                ProcedureStep(procedure=procedure, title='讲解完毕', discription='讲解满意再支付剩余70%的费用', pay=70),
+            ]
+            for step in steps:
+                step.save()
+
+            procedure = Procedure(name='科研指导流程（平台提供）', owner=user)
+            procedure.save()
+            steps = [
+                ProcedureStep(procedure=procedure, title='确认需求', discription='双方确认详细需求清单，并提交给平台', pay=0),
+                ProcedureStep(procedure=procedure, title='服务商发掘创新点并进行实验', discription='阅读大量文献，寻找论文创新点，并在平台实时更新研究进度', pay=0),
+                ProcedureStep(procedure=procedure, title='实验结果验收', discription='若验收满意需要支付30%费用，不满意则无需支付并终止服务', pay=30),
+                ProcedureStep(procedure=procedure, title='服务商讲解实验细节', discription='针对实验细节进行辅导讲解', pay=0),
+                ProcedureStep(procedure=procedure, title='讲解完毕', discription='讲解满意再支付剩余70%的费用', pay=70),
+            ]
+            for step in steps:
+                step.save()
+
             return JsonResponse({'success': True})
         
 
@@ -173,6 +221,13 @@ def detail(request, request_id):
             'my_requests': my_requests,
             'my_follows': my_follows,
         })
+        # 加入这个用户的所有流程
+        context['procedures'] = Procedure.objects.filter(owner=context['usr'])
+        print('ok')
+        # 加入合作选项
+        if context['follows'].count() > 0 and context['follows'].first().state == 1:
+            context['cooperation'] = Cooperation.objects.get(follow=context['follows'].first())
+
     return render(request, "help/detail.html", context)
 
 
@@ -188,11 +243,10 @@ def bidding(request, request_id):
     
     # 从前端获取数据
     bid_price = int(request.POST.get('bid'))
-    notify = bool(request.POST.get('notify_new_bids'))
+    procedure_id = int(request.POST.get('procedure_id'))
 
     # 创建投标信息
-    follow = RequestFollows(request=rqst, user=user, bid_price=bid_price,
-                            notify_new_bids=notify)
+    follow = RequestFollows(request=rqst, user=user, bid_price=bid_price, procedure_id=procedure_id)
     follow.save()
 
     # 更改投标用户的状态
@@ -226,8 +280,7 @@ def edit_information(request):
 
 
 @csrf_exempt
-def cooperation(request):
-    print(request.POST.get('id'))
+def make_cooperation(request):
     # 获取follow
     follow_id = request.POST.get('id')
     follow = RequestFollows.objects.filter(id=follow_id).first()
@@ -240,4 +293,111 @@ def cooperation(request):
     follow.request.save()
     follow.user.save()
 
+    # 创建Cooperation
+    cooperation = Cooperation(follow=follow)
+    cooperation.save()
+
     return JsonResponse({"success": True})
+
+
+@csrf_exempt
+def create_procedures(request):
+    if 'username' not in request.session:
+        return JsonResponse({'message': '请先登录后再进行操作'})
+    
+    # 创建一个流程
+    procedure = Procedure(owner=User.objects.filter(name=request.session['username']).first())
+
+    # 给这个流程内添加步骤
+    sum_pay = 0
+    step_list = []
+    for title, discription, pay in request.POST.get('procedure_steps'):
+        step_list.append(ProcedureStep(procedure=procedure, title=title, discription=discription, pay=int(pay)))
+        sum_pay += int(pay)
+
+    # 检查支付金额比例是否合法
+    if sum_pay != 100:
+        return JsonResponse({'message': '所有步骤支付比例相加须为100%'})
+    
+    # 创建数据库条目
+    procedure.save()
+    for step in step_list:
+        step.save()
+
+    return JsonResponse({'success': True})
+
+
+@csrf_exempt
+def cooperation(request, cooperation_id):
+    context = {
+        'cooperation': Cooperation.objects.get(id=cooperation_id)
+    }
+    if 'username' in request.session:
+        context['usr'] = User.objects.get(name=request.session['username'])
+    print(context['cooperation'].request_document)
+    return render(request, 'help/cooperation.html', context)
+
+
+def _convert_document(document: str):
+    html = markdown(document)
+    return html
+
+
+@csrf_exempt
+def convert_md_to_html(request):
+    document = request.POST.get('document')
+    document = _convert_document(document)
+    return JsonResponse({'html_document': document,
+                         'success': True})
+
+
+@csrf_exempt
+def submit_request_document(request):
+
+    # 从前端获取数据
+    document = request.POST.get('request_document')
+    cooperation_id = request.POST.get('cooperation_id')
+
+    # 修改合作的表项
+    cooperation = Cooperation.objects.get(id=int(cooperation_id))
+    cooperation.request_document = document
+    cooperation.request_document_update = True
+    cooperation.request_document_update_datetime = timezone.now()
+    cooperation.save()
+
+    return JsonResponse({'success': True})
+
+
+@csrf_exempt
+def entry_next_step(request):
+    
+    # 从前端获取数据
+    active_step = request.POST.get('active_step')
+    cooperation_id = request.POST.get('cooperation_id')
+
+    # 进入下一环节
+    cooperation = Cooperation.objects.get(id=int(cooperation_id))        
+    cooperation.active = int(active_step) + 1
+    cooperation.save()
+
+    return JsonResponse({'success': True})
+
+
+@csrf_exempt
+def submit_finish_date(request):
+
+    # 从前端获取数据
+    finish_date = request.POST.get('finish_date')
+    cooperation_id = request.POST.get('cooperation_id')
+    date_parts = [int(x) for x in finish_date.split('T')[0].split('-')]
+    date = timezone.datetime(*date_parts) + timezone.timedelta(days=1)
+    if timezone.datetime.today() > date:
+        return JsonResponse({'message': '预计完成日期应该在今天之后'})
+
+    # 保存完成日期
+    cooperation = Cooperation.objects.get(id=int(cooperation_id))
+    cooperation.predict_finish_date = f"{date}"
+    cooperation.save()
+
+    return JsonResponse({'success': True})
+    

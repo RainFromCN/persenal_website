@@ -94,13 +94,13 @@
                     <el-form-item label="竞标价" prop="bid">
                         <el-input placeholder="请输入竞标价" v-model="bidForm.bid" type="number" :min="0"></el-input>
                     </el-form-item>
-                    <el-form-item label="有新的竞标时是否通知">
-                        <el-switch
-                            v-model="bidForm.notify_new_bids"
-                            active-text="通知"
-                            inactive-text="不通知">
-                        </el-switch>
-                    </el-form-item> 
+                    <el-form-item label="选择流程" prop="procedure_id">
+                        <el-select v-model="bidForm.procedure_id" placeholder="请选择">
+                            {% for procedure in procedures %}
+                            <el-option label="{{procedure.name}}" value="{{procedure.id}}"></el-option>
+                            {% endfor %}
+                        </el-select>
+                    </el-form-item>
                     <el-form-item>
                         <el-button type="primary" @click="bidSubmit">提交</el-button>
                         <el-button @click="bid_visible = false">取消</el-button>
@@ -218,8 +218,6 @@
                                     <div style="margin-top: 20px; margin-bottom: 20px; font-size: 12px;">
                                         <el-row type="flex" align="middle" :gutter="20">
                                             <el-col :span="16">
-                                                <span>竞标次数 {{follow.user.bid_times}}</span>
-                                                <el-divider direction="vertical"></el-divider>
                                                 <span>中标次数 {{follow.user.win_times}}</span>
                                                 <el-divider direction="vertical"></el-divider>
                                                 <span>好评次数 {{follow.user.positive_times}}</span>
@@ -229,7 +227,7 @@
                                                 <div style="text-align:right;">
                                                     {% if rqst.state == 1 %}
                                                     {% if follow.state == 1 %}
-                                                    <el-button @click="cooperation_visible = true">开始合作</el-button>
+                                                    <el-button type="primary" @click="redirectToCooperation">开始合作</el-button>
                                                     {% elif follow.state == 0 %}
                                                     <span>未中标</span>
                                                     {% endif %}
@@ -242,7 +240,11 @@
                                             <el-col :span="8">
                                                 <div style="text-align:right;">
                                                     {% if follow.state == 1 %}
+                                                    {% if follow.user == usr %}
+                                                    <el-button type="primary" @click="redirectToCooperation">开始合作</el-button>
+                                                    {% else %}
                                                     <span style="color:rgb(31, 163, 31)">中标</span>
+                                                    {% endif %}
                                                     {% elif follow.state == 0 %}
                                                     <span>未中标</span>
                                                     {% endif %}
@@ -253,8 +255,17 @@
                                     </div>
                                     <div>
                                         <el-collapse>
-                                            <el-collapse-item title="个人简介">
-                                              <div>{{follow.user.introduction}}</div>
+                                            <el-collapse-item title="服务商简介">
+                                                <div>{{follow.user.introduction}}</div>
+                                            </el-collapse-item>
+                                            <el-collapse-item title="服务流程">
+                                                <div style="height: 400px; padding: 20px;">
+                                                    <el-steps direction="vertical">
+                                                        {% for step in follow.procedure.procedurestep_set.all %}
+                                                        <el-step status="process" title="{% if step.pay > 0 %}{{step.title}}（支付{{step.pay}}%）{% else %}{{step.title}}{% endif %}" description="{{step.discription}}"></el-step>
+                                                        {% endfor %}
+                                                      </el-steps>
+                                                </div>
                                             </el-collapse-item>
                                         </el-collapse>
                                     </div>
@@ -284,34 +295,34 @@
                                             </div>
                                         </el-col>
                                     </el-row>
-                                    <div style="margin-top: 20px; margin-bottom: 20px; font-size:12px;">
-                                        <span>{{rqst.timedelta}}</span>
-                                        <el-divider direction="vertical"></el-divider>
-                                        <span>{{rqst.num_bid}} 人竞标</span>
-                                        <el-divider direction="vertical"></el-divider>
-                                        <span>最低竞价 {{rqst.lowest_bid}} 元</span>
-                                    </div>
-                                    <div>
-                                        {% if rqst.publisher.name != username %}
+                                    <div style="margin-top: 20px">
+                                        {% if rqst.publisher.name != username and rqst.state == 0 %}
                                         <el-button type="primary" @click="bid_visible = true">参与竞标</el-button>
                                         {% endif %}
                                     </div>
                                 </div>
-                                <el-divider>发布者信息</el-divider>
-                                <div style="padding: 20px;">
-                                    <div style="display: flex; align-items:center;">
-                                        <el-avatar :size="small" :src="circleUrl"></el-avatar>
-                                        <span style="margin-left: 10px; margin-right: 10px;">{{rqst.publisher.name}}</span>
-                                        <el-divider direction="vertical"></el-divider>
-                                        <span style="font-size: 12px; margin-left: 10px;">共发布 {{rqst.publisher.pub_times}} 个需求</span> 
-                                    </div>
-                                    <div style="margin-top: 20px;">
-                                        <div style="font-size: 13px">个人简介：{{rqst.publisher.introduction}}</div>
-                                    </div>
-                                </div>
-                                <el-divider>需求描述</el-divider>
-                                <div style="padding: 20px; font-size: 13px">
-                                    <span>{{rqst.content}}</span>
+
+                                <div style="padding:20px">
+                                    <el-collapse>
+                                        <el-collapse-item title="发布者信息" name="1">
+                                            <div style="padding: 20px;">
+                                                <div style="display: flex; align-items:center;">
+                                                    <el-avatar :size="small" :src="circleUrl"></el-avatar>
+                                                    <span style="margin-left: 10px; margin-right: 10px;">{{rqst.publisher.name}}</span>
+                                                    <el-divider direction="vertical"></el-divider>
+                                                    <span style="font-size: 12px; margin-left: 10px;">共发布 {{rqst.publisher.pub_times}} 个需求</span> 
+                                                </div>
+                                                <div style="margin-top: 20px;">
+                                                    <div style="font-size: 13px">个人简介：{{rqst.publisher.introduction}}</div>
+                                                </div>
+                                            </div>
+                                        </el-collapse-item>
+                                        <el-collapse-item title="详细需求" name="2">
+                                            <div style="padding: 20px; font-size: 13px">
+                                                <span>{{rqst.content}}</span>
+                                            </div>
+                                        </el-collapse-item>
+                                    </el-collapse>
                                 </div>
                             </div>
                         </el-col>
@@ -386,7 +397,7 @@
 
                 bidForm: {
                     bid: '',
-                    notify_new_bids: true,
+                    procedure_id: '',
                 },
 
                 editForm: {
@@ -397,6 +408,9 @@
                 bidRules: {
                     bid: [
                         { required: true, message: '请输入竞标价', trigger: 'blur' },
+                    ],
+                    procedure_id: [
+                        { required: true, message: '请选择流程，若无数据则请先登录', trigger: 'blur' }
                     ],
                 },
                 editRules: {
@@ -510,7 +524,7 @@
             bidSubmit() {
                 const data = {
                     bid: this.bidForm.bid,
-                    notify_new_bids: this.bidForm.notify_new_bids,
+                    procedure_id: this.bidForm.procedure_id,
                 }
                 const headers = {
                     'Content-Type': 'application/x-www-form-urlencoded'
@@ -570,7 +584,7 @@
                 const headers = {
                     'Content-Type': 'application/x-www-form-urlencoded'
                 }
-                axios.post('/help/cooperation/', data, { headers })
+                axios.post('/help/make_cooperation/', data, { headers })
                 .then(response => {
                     if (response.data.message) {
                         this.$message.error(response.data.message)
@@ -583,7 +597,12 @@
                         location.reload()
                     }
                 })
-            }
+            },
+
+            redirectToCooperation() {
+                var follow_id = '{{cooperation.id}}'
+                window.location.href = '/help/cooperation/' + follow_id + '/'
+            },
           }
         })
       </script>

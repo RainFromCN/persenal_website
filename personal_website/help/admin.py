@@ -4,6 +4,7 @@ from django.contrib import admin
 from .models import (
     Request,
     RequestFollows,
+    Cooperation,
 )
 
 
@@ -19,3 +20,4 @@ class RequestAdmin(admin.ModelAdmin):
 
 
 admin.site.register(Request, RequestAdmin)
+admin.site.register(Cooperation)

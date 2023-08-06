@@ -13,5 +13,10 @@ urlpatterns = [
     path("bidding/<int:request_id>/", views.bidding, name='bidding'),
     path("detail/<int:request_id>/", views.detail, name='detail'),
     path("edit_information/", views.edit_information, name='edit_information'),
-    path("cooperation/", views.cooperation, name='cooperation'),
+    path("make_cooperation/", views.make_cooperation, name='make_cooperation'),
+    path("cooperation/<int:cooperation_id>/", views.cooperation, name="cooperation"),
+    path("convert_md_to_html/", views.convert_md_to_html, name='convert_md_to_html'),
+    path("submit/request_document/", views.submit_request_document, name='submit_request_document'),
+    path("submit/entry_next_step/", views.entry_next_step, name='entry_next_step'),
+    path("submit/finish_date/", views.submit_finish_date, name='submit_finish_date'),
 ]

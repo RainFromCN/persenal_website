@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+
+{% load static %}
+{% load project_extras %}
+
+<html lang="en-US">
+    <head>
+        <meta charset="utf-8"/>
+        <meta name="viewport" content="width=device-width"/>
+        <title>{{follow.request.title}}</title>
+        <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+        <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+        <style>
+            * {margin: 0; padding: 0}
+
+            .preview_document {
+                color: #606266;
+                font-size: 13px;
+                line-height: 200%;
+            }
+
+            .preview_document h1 {
+                color: #303133;
+                font-size: 18px;
+                line-height: 250%;
+            }
+
+            .preview_document h2 {
+                color: #606266;
+                font-size: 16px;
+            }
+
+            .preview_document h3 {
+                color: #606266;
+                font-size: 14px;
+            }
+        </style>
+    </head>
+
+    <body>
+        <div id="app" style="display: flex;">
+            <el-dialog title="需求文档预览" :visible.sync="document_visible" width="70%">
+                <div v-html="html_document" class="preview_document"></div>
+            </el-dialog>
+
+            <div style="width: 70vw;">
+                <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin: 20px; padding: 20px;">
+                    <el-steps :active="active_step" align-center finish-status="success">
+                        {% for step in cooperation.follow.procedure.procedurestep_set.all %}
+                        <el-step title="{{step.title}}" description="{{step.discription}}"></el-step>
+                        {% endfor %}
+                    </el-steps>
+                </div>
+                <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin: 20px; padding: 20px;">
+                    <div style="display:flex; justify-content: center; align-items:center;padding:20px;padding-top:0; color:#303133;">
+                        <span style="font-size: 16px; color:#409EFF;"><i class="el-icon-s-cooperation"></i> 工作台</span>
+                    </div>
+                    {% if cooperation.active == 0 %}
+                    <!--第一步-->
+                    {% if cooperation.follow.user == usr %}
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 请您主动与对方交流，明确对方需求，并在下面的输入框内撰写需求文档</div>
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 提交完成后，请主动联系对方进行核对</div>
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 如果对方有修改意见，则您应修改需求并重新提交</div>
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 如果对方没有修改意见，则您应主动通知对方，让对方操作进入下一个合作环节</div>
+                    <el-input :autosize="{minRows: 10}" type="textarea" placeholder="请输入需求文档" v-model="request_document" maxlength="2000" show-word-limit></el-input>
+                    <div style="display: flex; align-items:center; justify-content: center; margin-top: 20px;">
+                        <el-button @click="previewDocument">预览</el-button>
+                        <el-button type="primary" @click="requestDocumentSubmit">提交</el-button>
+                    </div>
+                    {% else %}
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 请您配合对方的交流，并耐心等待对方撰写需求文档</div>
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 对方提交需求文档之后，刷新本页面点击“查看需求文档”即可审阅</div>
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 若您对需求文档满意，则可直接“进入下一环节”</div>
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 若您对需求文档不满意，则可给对方提修改意见让其重写，或“取消合作”</div>
+                    {% if cooperation.request_document_update == True %}
+                    <el-button type="primary" @click="previewDocument">查看需求文档</el-button>
+                    <el-divider direction="vertical"></el-divider>
+                    <span style="font-size:13px; color:#909399">更新时间：{{cooperation.request_document_update_datetime}}</span>
+                    {% else %}
+                    <el-button type="primary" disabled>查看需求文档</el-button>
+                    <el-divider direction="vertical"></el-divider>
+                    <span style="font-size:13px; color:#909399">对方尚未提交需求文档</span>
+                    {% endif %}
+                    <div style="margin-top:20px; display:flex; justify-content: center; align-items:center;">
+                        <span>
+                            <el-button type="success" plain @click="entryNextSubmit">进入下一环节</el-button>
+                        </span>
+                        <span style="margin-left:20px;">
+                            <el-button type="danger" plain>取消合作</el-button>
+                        </span>
+                    </div>
+                    {% endif %}
+                    <!--/第一步-->
+                    {% elif cooperation.active == 1 %}
+                    <!--第二步-->
+                    {% if cooperation.follow.user == usr %}
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 请您主动与用户交流，并慎重填写预计完成时期</div>
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 填写完成后应在规定日期内完成开发，完成后点击“进入下一环节”</div>
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 若超过预计完成日期后仍未点击“进入下一环节”，则从押金扣除相应违约金</div>
+
+                    <template>
+                        <div style="margin-bottom: 20px">
+                          <div style="font-size: 14px; color:#909399; margin-bottom: 20px;">选择预计完成日期</div>
+                          <el-date-picker v-model="finish_date" type="date" placeholder="选择日期" :timezone='null'>
+                          </el-date-picker>
+                        </div>
+                        <div v-if="finish_date === ''">
+                            <el-button type="primary" disabled>提交日期</el-button>
+                        </div>
+                        <div v-else>
+                            <el-button type="primary" @click="finishDateSubmit">提交日期</el-button>
+                        </div>
+                        
+                    </template>
+                    <div style="margin-top:20px; display:flex; justify-content: center; align-items:center;">
+                        <span>
+                            <el-button type="success" plain @click="entryNextSubmit">进入下一环节</el-button>
+                        </span>
+                    </div>
+                    {% else %}
+                    {% endif %}
+                    <!--/第二步-->
+                    {% endif %}
+                </div>
+                <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin: 20px; padding: 20px;">
+                    <div style="display:flex; justify-content: center; align-items:center;padding:20px;padding-top:0; color:#303133;">
+                        <span style="font-size: 16px; color:#409EFF;"><i class="el-icon-question"></i> Q&A</span>
+                    </div>
+                    <el-collapse>
+                        {% if cooperation.active == 0 %}
+                        <!--第一步-->
+                        {% if cooperation.follow.user == usr %}
+                        <el-collapse-item title="是否可以多次提交需求文档？" name="1">
+                            <div>是的，可以多次提交需求文档，提交后将会覆盖旧的需求文档，用户只能看到最新的需求文档。</div>
+                        </el-collapse-item>
+                        <el-collapse-item title="如何进入下一步？" name="2">
+                            <div>用户验收你提交的需求文档后，才能进入下一步。如果用户对你撰写的需求文档不满意，那么你应该重新核对需求并撰写新的需求文档，直到用户满意为止。</div>
+                        </el-collapse-item>
+                        <el-collapse-item title="如何给需求文档添加层级结构？" name="3">
+                            <div>使用一个井号表示一级标题，如：# 一级标题</div>
+                            <div>使用两个井号表示二级标题，如：## 二级标题</div>
+                            <div>注意井号和标题正文之间有一个空格。</div>
+                        </el-collapse-item>
+                        {% else %}
+                        <el-collapse-item title="需求文档是对方撰写吗？" name="1">
+                            <div>是的，您需要配合沟通，让对方了解您的详细需求，并由对方撰写需求文档。</div>
+                        </el-collapse-item>
+                        <el-collapse-item title="可以不等对方撰写文档，直接进入下一环节吗？" name="2">
+                            <div>可以，但不建议，平台设置撰写需求文档环节，主要是保留依据，方便维护您的权益。</div>
+                        </el-collapse-item>
+                        <el-collapse-item title="如果对方迟迟不提交需求文档怎么办？" name="3">
+                            <div>这种情况下您可以通过聊天页面催促对方，或直接取消合作。</div>
+                        </el-collapse-item>
+                        {% endif %}
+                        <!--/第一步-->
+                        {% elif cooperation.active == 1 %}
+                        <!--第二步-->
+                        {% if cooperation.follow.user == usr %}
+                        <el-collapse-item title="如何修改预计完成时间？" name="1">
+                            <div>首先您申请修改预计完成时间，申请完成后平台会自动通知对方，对方同意后方可直接生效。</div>
+                            <div>新的预计完成时间生效后，原来的预计完成时间将作废，不用于评估逾期行为。</div>
+                        </el-collapse-item>
+                        <el-collapse-item title="快逾期了仍没做完，是否可以先“进入下一环节”？" name="2">
+                            <div>不可以，因为进入下一环节之后，要选择未来7天中的某一天作为验收日。</div>
+                            <div>如果您在7天之内没有参与验收，平台会认为您有违约现象，并自动从押金中扣除部分违约金。</div>
+                        </el-collapse-item>
+                        {% else %}
+                        {% endif %}
+                        <!--/第二步-->
+                        {% endif %}
+                    </el-collapse>
+                </div>
+            </div>
+            <div style="width: 30vw; height: 100vh; background-color: antiquewhite; position:fixed; left: 70vw">
+                <div style="height: calc(100% - 40px);box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin: 20px; margin-left: 0;">
+                    
+                </div>
+            </div>
+        </div>
+    </body>
+
+    <script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            data: function() {
+                return {
+                    active_step: parseInt("{{cooperation.active}}"),
+                    request_document: `{{cooperation.request_document}}`,
+                    document_visible: false,
+                    html_document: '',
+                    finish_date: "{{cooperation.predict_finish_date}}",
+                }
+            },
+
+            methods: {
+                previewDocument: function() {
+                    const data = {
+                        document: this.request_document,
+                    }
+                    const headers = {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                    axios.post('/help/convert_md_to_html/', data, { headers })
+                    .then(response => {
+                        if (response.data.message) {
+                            this.$message.error(response.data.message)
+                        }
+                        else if (response.data.success) {
+                            this.document_visible = true
+                            this.html_document = response.data.html_document
+                        }
+                    })
+                },
+
+                requestDocumentSubmit: function() {
+                    const data = {
+                        request_document: this.request_document,
+                        cooperation_id: "{{cooperation.id}}",
+                    }
+                    const headers = {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                    axios.post('/help/submit/request_document/', data, { headers })
+                    .then(response => {
+                        if (response.data.message) {
+                            this.$message.error(response.data.message)
+                        }
+                        else if (response.data.success) {
+                            this.$message.success('提交成功，请主动通知对方验收')
+                        }
+                    })
+                },
+
+                entryNextSubmit: function() {
+                    const data = {
+                        active_step: this.active_step,
+                        cooperation_id: "{{cooperation.id}}",
+                    }
+                    const headers = {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                    axios.post('/help/submit/entry_next_step/', data, { headers })
+                    .then(response => {
+                        if (response.data.message) {
+                            this.$message.error(response.data.message)
+                        }
+                        else if (response.data.success) {
+                            this.$message.success('进入合作第二环节')
+                            location.reload()
+                        }
+                    })
+                },
+
+                finishDateSubmit: function() {
+                    const data = {
+                        finish_date: this.finish_date,
+                        cooperation_id: "{{cooperation.id}}",
+                    }
+                    const headers = {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                    axios.post('/help/submit/finish_date/', data, { headers })
+                    .then(response => {
+                        if (response.data.message) {
+                            this.$message.error(response.data.message)
+                        }
+                        else if (response.data.success) {
+                            this.$message.success('成功提交预计完成日期')                        }
+                    })
+                }
+            },
+        })
+      </script>
+</html>
