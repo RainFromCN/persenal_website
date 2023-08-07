@@ -223,7 +223,6 @@ def detail(request, request_id):
         })
         # 加入这个用户的所有流程
         context['procedures'] = Procedure.objects.filter(owner=context['usr'])
-        print('ok')
         # 加入合作选项
         if context['follows'].count() > 0 and context['follows'].first().state == 1:
             context['cooperation'] = Cooperation.objects.get(follow=context['follows'].first())
@@ -337,9 +336,14 @@ def cooperation(request, cooperation_id):
         if timezone.datetime.today() > finish_date:
             days = (timezone.datetime.today() - finish_date).days
             context['overdue'] = days
+    if (acceptance_date := context['cooperation'].acceptance_date) != '':
+        date_parts, _ = acceptance_date.split(' ')
+        acceptance_date = timezone.datetime(*[int(x) for x in date_parts.split('-')])
+        if timezone.datetime.today() > acceptance_date:
+            days = (timezone.datetime.today() - acceptance_date).days
+            context['acceptance_date_overdue'] = days
     if 'username' in request.session:
         context['usr'] = User.objects.get(name=request.session['username'])
-    print(context['cooperation'].request_document)
     return render(request, 'help/cooperation.html', context)
 
 
@@ -428,6 +432,57 @@ def submit_fix_finish_date(request):
     elif agree == 0:
         cooperation.predict_finish_date_fix_state = 2
     cooperation.predict_finish_date_fix = ''
+    cooperation.save()
+
+    return JsonResponse({'success': True})
+
+
+@csrf_exempt
+def submit_acceptance_date(request):
+
+    # 从前端获取数据
+    acceptance_date = request.POST.get('acceptance_date')
+    cooperation_id = request.POST.get('cooperation_id')
+    date_parts = [int(x) for x in acceptance_date[:10].split('-')]
+    time_parts = [int(x) for x in acceptance_date[11:19].split(':')]
+
+    # 转换为上海时区
+    date = timezone.datetime(*date_parts, *time_parts) + timezone.timedelta(hours=8)
+
+    if timezone.datetime.today() > date:
+        return JsonResponse({'message': '验收日期应该在今天之后'})
+    elif date > timezone.datetime.today() + timezone.timedelta(days=7):
+        return JsonResponse({'message': '验收日期必须在未来七天之内'})
+        
+    # 响应字典
+    response = {'success': True}
+
+    # 设置相应字段
+    cooperation = Cooperation.objects.get(id=int(cooperation_id))
+    response['fix'] = True
+    cooperation.acceptance_date_fix = (f"{date}")
+    cooperation.acceptance_date_fix_state = 0
+
+    # 保存日期
+    cooperation.save()
+
+    return JsonResponse(response)
+    
+
+@csrf_exempt
+def submit_fix_acceptance_date(request):
+    # 从前端获取数据
+    agree = int(request.POST.get('agree'))
+    cooperation_id = request.POST.get('cooperation_id')
+
+    # 设置相应字段
+    cooperation = Cooperation.objects.get(id=int(cooperation_id))
+    if agree == 1:
+        cooperation.acceptance_date = cooperation.acceptance_date_fix
+        cooperation.acceptance_date_fix_state = 1
+    elif agree == 0:
+        cooperation.acceptance_date_fix_state = 2
+    cooperation.acceptance_date_fix = ''
     cooperation.save()
 
     return JsonResponse({'success': True})
