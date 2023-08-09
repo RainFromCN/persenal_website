@@ -1,6 +1,6 @@
 # URL patterns in polls/urls.py
 from django.urls import path
-from . import views
+from . import views, chat
 
 app_name = "help"
 
@@ -21,5 +21,7 @@ urlpatterns = [
     path("submit/finish_date/", views.submit_finish_date, name='submit_finish_date'),
     path("submit/fix_finish_date/", views.submit_fix_finish_date, name='submit_fix_finish_date'),
     path("submit/acceptance_date/", views.submit_acceptance_date, name='submit_acceptance_date'),
-    path("submit/fix_acceptance_date/", views.submit_fix_acceptance_date, name='submit_fix_acceptance_date'),    
+    path("submit/fix_acceptance_date/", views.submit_fix_acceptance_date, name='submit_fix_acceptance_date'),
+    path("get/chat_msgs/", chat.get_chat_msgs, name='get_chat_msgs'),
+    path("remove/chat_msgs/", chat.remove_chat_msgs, name='remove_chat_msgs'),
 ]

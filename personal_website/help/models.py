@@ -69,8 +69,3 @@ class Cooperation(models.Model):
     acceptance_date = models.CharField(default='', max_length=20, blank=True) # 项目验收日期
     acceptance_date_fix = models.CharField(default='', max_length=20, blank=True) # 提交的修改
     acceptance_date_fix_state = models.IntegerField(default=0) # 0表示未作出响应，1表示同意，2表示拒绝
-
-class CooperationMessage(models.Model):
-    cooperation = models.ForeignKey(to=Cooperation, on_delete=models.CASCADE)
-    text = models.CharField(max_length=500)
-    img_id = models.CharField(max_length=200)

@@ -282,9 +282,23 @@
                     </el-collapse>
                 </div>
             </div>
-            <div style="width: 30vw; height: 100vh; background-color: antiquewhite; position:fixed; left: 70vw">
+            <div style="width: 30vw; height: 100vh; position:fixed; left: 70vw">
                 <div style="height: calc(100% - 40px);box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin: 20px; margin-left: 0;">
-                    
+                    <div style="height: 80px; background-color: aquamarine;"></div>
+                    <div style="height: calc(100% - 160px); background-color: antiquewhite;">
+                        <template>
+                            <ul class="infinite-list" style="overflow:auto">
+                                <li v-for="msg in chat_msgs" class="infinite-list-item">
+                                    <div v-if="msg.username === '{{usr.name}}'" v-text="msg.msg" style="display:flex; align-items:baseline; justify-content: right;"></div>
+                                    <div v-else v-text="msg.msg" style="display:flex; align-items:baseline; justify-content: left;"></div>
+                                </li>
+                            </ul>
+                        </template>
+                    </div>
+                    <div style="height: 80px; background-color:aquamarine; display:flex; align-items: center;">
+                        <el-input v-model="chat_text" placeholder="请输入聊天内容"></el-input>
+                        <el-button type="primary" id="submitChatBtn"><i class="el-icon-s-promotion"></i></el-button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -306,7 +320,59 @@
                     finish_date: "{{cooperation.predict_finish_date}}",
                     step2_confirm_visible: false,
                     acceptance_date: "{{cooperation.acceptance_date}}",
+
+                    // 关于聊天
+                    chat_text: '',
+                    chat_msgs: [],
                 }
+            },
+
+            mounted() {
+                var self = this
+                var websocket = new WebSocket("ws://" + window.location.hostname + ":8001")
+                websocket.onopen = function() {
+                    document.getElementById('submitChatBtn').onclick = () => {
+                        var txt = self.chat_text
+                        if (txt) {
+                            websocket.send(txt)
+                        }
+                    }
+                    var meta = {
+                        'cooperation_id': "{{cooperation.id}}",
+                        'username': "{{usr.name}}",
+                    }
+                    meta = JSON.stringify(meta)
+                    websocket.send(meta)
+                }
+                websocket.onmessage = function(e) {
+                    var msg = JSON.parse(e.data).data
+                    console.log(msg)
+                    if (msg.login === false && msg.logout === false) {
+                        self.chat_msgs.push(msg)
+                    }
+                }
+
+                /* 从服务器获取之前的聊天记录 */
+                const data = {
+                    cooperation_id: "{{cooperation.id}}"
+                }
+                const headers = {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+                axios.post('/help/get/chat_msgs/', data, { headers })
+                .then(response => {
+                    if (response.data.chat_msgs) {
+                        response.data.chat_msgs.forEach(function(msg) {
+                            self.chat_msgs.push({
+                                'username': msg.username,
+                                'msg': msg.msg,
+                                'login': false,
+                                'logout': false,
+                            })
+                        })
+                    }
+                })
+                
             },
 
             methods: {
@@ -426,7 +492,6 @@
                     const headers = {
                         'Content-Type': 'application/x-www-form-urlencoded'
                     }
-                    console.log(fix_what)
                     axios.post('/help/submit/' + fix_what + '/', data, { headers })
                     .then(response => {
                         if (response.data.message) {
@@ -442,7 +507,7 @@
                             location.reload()
                         }
                     })
-                }
+                },
             },
         })
       </script>
