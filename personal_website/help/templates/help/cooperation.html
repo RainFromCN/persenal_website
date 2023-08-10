@@ -42,7 +42,8 @@
                 color: white;
                 font-size: 14px;
                 border-radius: 8px;
-                box-shadow: 0 2px 4px rgba(0, 0, 0, .12), 0 0 6px rgba(0, 0, 0, .04)
+                box-shadow: 0 2px 4px rgba(0, 0, 0, .12), 0 0 6px rgba(0, 0, 0, .04);
+                max-width: 70%;
             }
         </style>
     </head>
@@ -306,19 +307,21 @@
                         <div ref="chatBoxContainer" style="overflow-y:auto; scroll-margin-top: auto; margin-left: 5px; margin-right: 5px; padding: 5px; background-color: #FFFFFF; border: 1px solid #DCDFE6; border-radius:10px; height: calc(100% - 130px);">
                             <ul>
                                 <li v-for="msg in chat_msgs">
-                                    <div class="chat-msg-box" v-if="msg.username === '{{usr.name}}'" style="display:flex; align-items:baseline; justify-content: right;">
-                                        <span class="chat-msg" v-text="msg.msg"></span>
+                                    <div v-if="msg.username === '{{usr.name}}'" style="display:flex; align-items:flex-start; justify-content: right;">
+                                        <div class="chat-msg" v-text="msg.msg"></div>
+                                        <div style="padding-top:10px"><el-avatar shape="square" :size="30":src="circleUrl"></el-avatar></div>
                                     </div>
-                                    <div class="chat-msg-box" v-else style="display:flex; align-items:baseline; justify-content: left;">
-                                        <span class="chat-msg" v-text="msg.msg"></span>
+                                    <div v-else style="display:flex; align-items:flex-start; justify-content: left;">
+                                        <div style="padding-top:10px"><el-avatar shape="square" :size="30":src="circleUrl"></el-avatar></div>
+                                        <div class="chat-msg" v-text="msg.msg"></div>
                                     </div>
                                 </li>
                             </ul>
                         </div>
                     </template>
                     <div style="padding-left: 5px; padding-right:5px; height: 80px; display:flex; align-items: center;">
-                        <el-input v-model="chat_text" placeholder="请输入聊天内容"></el-input>
-                        <el-button type="primary" id="submitChatBtn"><i class="el-icon-s-promotion"></i></el-button>
+                        <el-input v-model="chat_text" placeholder="请输入聊天内容" id="submitChatKey"></el-input>
+                        <el-button type="primary" style="border-radius: 0 10px 10px 0" id="submitChatBtn"><i class="el-icon-s-promotion"></i></el-button>
                     </div>
                 </div>
             </div>
@@ -334,6 +337,8 @@
             el: '#app',
             data: function() {
                 return {
+                    circleUrl: "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png",
+
                     active_step: parseInt("{{cooperation.active}}"),
                     request_document: `{{cooperation.request_document}}`,
                     document_visible: false,
@@ -350,9 +355,6 @@
             },
 
             mounted() {
-                this.$nextTick(() => {
-                    this.scrollToBottom()
-                })
                 var self = this
                 var websocket = new WebSocket("ws://" + window.location.hostname + ":8001")
                 websocket.onopen = function() {
@@ -360,8 +362,18 @@
                         var txt = self.chat_text
                         if (txt) {
                             websocket.send(txt)
+                            self.chat_text = ''
                         }
                     }
+                    document.getElementById('submitChatKey').addEventListener('keyup', function(event) {
+                        if (event.key === 'Enter') {
+                            var txt = self.chat_text
+                            if (txt) {
+                                websocket.send(txt)
+                                self.chat_text = ''
+                            }
+                        }
+                    })
                     var meta = {
                         'cooperation_id': "{{cooperation.id}}",
                         'username': "{{usr.name}}",
@@ -404,15 +416,16 @@
                         })
                     }
                 })
-                
+            },
+
+            updated() {
+                this.scrollToBottom();
             },
 
             methods: {
                 scrollToBottom() {
-                    this.$nextTick(() => {
-                        const container = this.$refs.chatBoxContainer
-                        container.scrollTop = container.scrollHeight
-                    })
+                    const container = this.$refs.chatBoxContainer;
+                    container.scrollTop = container.scrollHeight;
                 },
 
                 previewDocument: function() {
