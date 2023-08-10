@@ -29,13 +29,14 @@ def remove_chat_msgs(request):
     return JsonResponse({})
 
 
-def _msg(username: str, msg: str, login=False, logout=False):
+def _msg(username: str, msg: str, login=False, logout=False, online=False):
     return json.dumps({
         'data': {
             'username': username,
             'msg': msg,
             'login': login,
             'logout': logout,
+            'online': online,
         }
     })
 
@@ -51,7 +52,7 @@ async def handle_message(websocket, path):
     meta = json.loads(await websocket.recv())
     if (c_id := int(meta['cooperation_id'])) in connected_clients:
         connected_clients[c_id].add(websocket)
-        await _broadcast(c_id, _msg(meta['username'], '我已上线', login=True))
+        await _broadcast(c_id, _msg(meta['username'], '我已上线', login=True, online=True))
     else:
         connected_clients[c_id] = {websocket}
     print(f"合作 {len(connected_clients)}\t 用户 {sum([len(x) for x in connected_clients.values()])}\t {meta['username']}加入")

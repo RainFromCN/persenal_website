@@ -34,6 +34,16 @@
                 color: #606266;
                 font-size: 14px;
             }
+
+            .chat-msg {
+                background-color: #409EFF;
+                padding:8px;
+                margin:8px;
+                color: white;
+                font-size: 14px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, .12), 0 0 6px rgba(0, 0, 0, .04)
+            }
         </style>
     </head>
 
@@ -283,19 +293,30 @@
                 </div>
             </div>
             <div style="width: 30vw; height: 100vh; position:fixed; left: 70vw">
-                <div style="height: calc(100% - 40px);box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin: 20px; margin-left: 0;">
-                    <div style="height: 80px; background-color: aquamarine;"></div>
-                    <div style="height: calc(100% - 160px); background-color: antiquewhite;">
-                        <template>
-                            <ul class="infinite-list" style="overflow:auto">
-                                <li v-for="msg in chat_msgs" class="infinite-list-item">
-                                    <div v-if="msg.username === '{{usr.name}}'" v-text="msg.msg" style="display:flex; align-items:baseline; justify-content: right;"></div>
-                                    <div v-else v-text="msg.msg" style="display:flex; align-items:baseline; justify-content: left;"></div>
+                <div style="background-color: #F2F6FC; height: calc(100% - 40px);box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin: 20px; margin-left: 0;">
+                    <div style="height: 40px; display:flex; align-items:center; justify-content: center;">
+                        <div v-if="online === true" style="display:flex; align-items: center; justify-content: center;">
+                            <span style="color: #606266; font-size: 13px"><i class="el-icon-chat-line-round"></i> 对方在线</span>
+                        </div>
+                        <div v-else>
+                            <span style="color: #606266; font-size: 13px"><i class="el-icon-loading"></i> 对方不在线</span>
+                        </div>
+                    </div>
+                    <template>
+                        <div ref="chatBoxContainer" style="overflow-y:auto; scroll-margin-top: auto; margin-left: 5px; margin-right: 5px; padding: 5px; background-color: #FFFFFF; border: 1px solid #DCDFE6; border-radius:10px; height: calc(100% - 130px);">
+                            <ul>
+                                <li v-for="msg in chat_msgs">
+                                    <div class="chat-msg-box" v-if="msg.username === '{{usr.name}}'" style="display:flex; align-items:baseline; justify-content: right;">
+                                        <span class="chat-msg" v-text="msg.msg"></span>
+                                    </div>
+                                    <div class="chat-msg-box" v-else style="display:flex; align-items:baseline; justify-content: left;">
+                                        <span class="chat-msg" v-text="msg.msg"></span>
+                                    </div>
                                 </li>
                             </ul>
-                        </template>
-                    </div>
-                    <div style="height: 80px; background-color:aquamarine; display:flex; align-items: center;">
+                        </div>
+                    </template>
+                    <div style="padding-left: 5px; padding-right:5px; height: 80px; display:flex; align-items: center;">
                         <el-input v-model="chat_text" placeholder="请输入聊天内容"></el-input>
                         <el-button type="primary" id="submitChatBtn"><i class="el-icon-s-promotion"></i></el-button>
                     </div>
@@ -324,10 +345,14 @@
                     // 关于聊天
                     chat_text: '',
                     chat_msgs: [],
+                    online: false,
                 }
             },
 
             mounted() {
+                this.$nextTick(() => {
+                    this.scrollToBottom()
+                })
                 var self = this
                 var websocket = new WebSocket("ws://" + window.location.hostname + ":8001")
                 websocket.onopen = function() {
@@ -346,9 +371,16 @@
                 }
                 websocket.onmessage = function(e) {
                     var msg = JSON.parse(e.data).data
-                    console.log(msg)
                     if (msg.login === false && msg.logout === false) {
                         self.chat_msgs.push(msg)
+                    } else if (msg.online === true) {
+                        self.online = true;
+                    } else if (msg.login === true && msg.username !== "{{usr.name}}") {
+                        // 处理login事件
+                        self.online = true;
+                    } else if (msg.logout === true && msg.username !== "{{usr.name}}") {
+                        // 处理logout事件
+                        self.online = false;
                     }
                 }
 
@@ -376,6 +408,13 @@
             },
 
             methods: {
+                scrollToBottom() {
+                    this.$nextTick(() => {
+                        const container = this.$refs.chatBoxContainer
+                        container.scrollTop = container.scrollHeight
+                    })
+                },
+
                 previewDocument: function() {
                     const data = {
                         document: this.request_document,
