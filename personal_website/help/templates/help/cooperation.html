@@ -322,6 +322,9 @@
                     <div style="padding-left: 5px; padding-right:5px; height: 80px; display:flex; align-items: center;">
                         <el-input v-model="chat_text" placeholder="请输入聊天内容" id="submitChatKey"></el-input>
                         <el-button type="primary" style="border-radius: 0 10px 10px 0" id="submitChatBtn"><i class="el-icon-s-promotion"></i></el-button>
+                        {% with "cooperation."|addstr:cooperation.id as room %}
+                        <el-link href="{% url 'help:share' room %}" target="_blank">远程桌面</el-link>
+                        {% endwith %}
                     </div>
                 </div>
             </div>

@@ -1,0 +1,103 @@
+{% load static %}
+
+<html>
+<body>
+    <button onclick="start()">打开媒体</button>
+    <video autoplay muted id="selfview" playsinline style="background-color: antiquewhite;"></video>
+    <video autoplay id="remoteview" playsinline style="background-color: aquamarine;"></video>
+</body>
+<script>
+
+const config = {}
+const signaler = new WebSocket('ws://localhost:8002')
+const pc = new RTCPeerConnection(config)
+
+const contraints = { audio: true, video: true }
+const selfVideo = document.querySelector('#selfview')
+const remoteVideo = document.querySelector('#remoteview')
+
+
+let makingOffer = false
+let ignoreOffer = false
+let polite = true
+
+
+async function start() {
+    try {
+        const stream = await navigator.mediaDevices.getDisplayMedia(contraints)
+
+        for (const track of stream.getTracks()) {
+            pc.addTrack(track, stream)
+        }
+
+        selfVideo.srcObject = stream
+    } catch (err) {
+        console.error(err)
+    }
+}
+
+
+pc.ontrack = ({ track, streams }) => {
+    track.onunmute = () => {
+        if (remoteVideo.srcObject) {
+            return
+        }
+        remoteVideo.srcObject = streams[0]
+    }
+}
+
+
+pc.onnegotiationneeded = async () => {
+    try {
+        makingOffer = true
+        await pc.setLocalDescription()
+        signaler.send(JSON.stringify({ description: pc.localDescription }))
+    } catch (err) {
+        console.error(err)
+    } finally {
+        makingOffer = false
+    }
+}
+
+
+pc.onicecandidate = ({ candidate }) => signaler.send(JSON.stringify({ candidate }))
+
+
+signaler.onmessage = async message => {
+    try {
+        var data = JSON.parse(message.data)
+        let description = data.description
+        let candidate = data.candidate
+
+
+        if (description) {
+            const offerCollision = 
+                description.type === 'offer' && 
+                (makingOffer || pc.signalingState !== 'stable')
+            
+            ignoreOffer = !polite && offerCollision
+            if (ignoreOffer) {
+                return
+            }
+
+            await pc.setRemoteDescription(description)
+            if (description.type === 'offer') {
+                await pc.setLocalDescription()
+                signaler.send(JSON.stringify({ description: pc.localDescription }))
+            }
+        } else if (candidate) {
+            try {
+                await pc.addIceCandidate(candidate)
+            } catch (err) {
+                if (!ignoreOffer) {
+                    throw err
+                }
+            }
+        }
+    } catch (err) {
+        console.error(err)
+    }
+}
+</script>
+<script src="{% static 'help/javascript/adapter-latest.js' %}"></script>
+</html>
