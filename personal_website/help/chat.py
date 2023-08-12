@@ -5,6 +5,8 @@ import websockets
 import json
 
 
+# 记录已经登录的用户
+connected_users = set()
 # 用于记录已经登录的
 connected_clients = dict()
 # 聊天缓存
@@ -50,6 +52,7 @@ async def _broadcast(c_id: int, msg):
 async def handle_message(websocket, path):
     # 新的连接建立时
     meta = json.loads(await websocket.recv())
+
     if (c_id := int(meta['cooperation_id'])) in connected_clients:
         connected_clients[c_id].add(websocket)
         await _broadcast(c_id, _msg(meta['username'], '我已上线', login=True, online=True))

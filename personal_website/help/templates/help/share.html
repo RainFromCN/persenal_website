@@ -1,11 +1,25 @@
 {% load static %}
 
-<html>
+<html lang="en-US">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width"/>
+    <title>{{follow.request.title}}</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+</head>
 <body>
-    <button onclick="start()">打开媒体</button>
-    <video autoplay muted id="selfview" playsinline style="background-color: antiquewhite;"></video>
-    <video autoplay id="remoteview" playsinline style="background-color: aquamarine;"></video>
+    <div id="app">
+        <el-button type="primary" @click="start">打开媒体</el-button>
+        <el-button type="primary" @click="finish">关闭媒体</el-button>
+        <el-button type="primary" @click="finishFcn">关闭媒体2</el-button>
+        <video autoplay muted ref="selfview" playsinline style="background-color: antiquewhite;"></video>
+        <video autoplay ref="remoteview" playsinline style="background-color: aquamarine;"></video>
+    </div>
 </body>
+<script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
 
 const config = {}
@@ -13,91 +27,117 @@ const signaler = new WebSocket('ws://localhost:8002')
 const pc = new RTCPeerConnection(config)
 
 const contraints = { audio: true, video: true }
-const selfVideo = document.querySelector('#selfview')
-const remoteVideo = document.querySelector('#remoteview')
+const polite = false
 
 
-let makingOffer = false
-let ignoreOffer = false
-let polite = true
+var makingOffer = false
+var ignoreOffer = false
 
 
-async function start() {
-    try {
-        const stream = await navigator.mediaDevices.getDisplayMedia(contraints)
 
-        for (const track of stream.getTracks()) {
-            pc.addTrack(track, stream)
+new Vue({
+    el: '#app',
+    data: function() {
+        return {
+
         }
+    },
 
-        selfVideo.srcObject = stream
-    } catch (err) {
-        console.error(err)
-    }
-}
-
-
-pc.ontrack = ({ track, streams }) => {
-    track.onunmute = () => {
-        if (remoteVideo.srcObject) {
-            return
-        }
-        remoteVideo.srcObject = streams[0]
-    }
-}
-
-
-pc.onnegotiationneeded = async () => {
-    try {
-        makingOffer = true
-        await pc.setLocalDescription()
-        signaler.send(JSON.stringify({ description: pc.localDescription }))
-    } catch (err) {
-        console.error(err)
-    } finally {
-        makingOffer = false
-    }
-}
-
-
-pc.onicecandidate = ({ candidate }) => signaler.send(JSON.stringify({ candidate }))
-
-
-signaler.onmessage = async message => {
-    try {
-        var data = JSON.parse(message.data)
-        let description = data.description
-        let candidate = data.candidate
-
-
-        if (description) {
-            const offerCollision = 
-                description.type === 'offer' && 
-                (makingOffer || pc.signalingState !== 'stable')
-            
-            ignoreOffer = !polite && offerCollision
-            if (ignoreOffer) {
-                return
+    mounted() {
+        pc.ontrack = ({ track, streams }) => {
+            track.onunmute = () => {
+                if (this.$refs.remoteview.srcObject) {
+                    return
+                }
+                this.$refs.remoteview.srcObject = streams[0]
             }
+        }
 
-            await pc.setRemoteDescription(description)
-            if (description.type === 'offer') {
+
+        pc.onnegotiationneeded = async () => {
+            try {
+                makingOffer = true
                 await pc.setLocalDescription()
                 signaler.send(JSON.stringify({ description: pc.localDescription }))
-            }
-        } else if (candidate) {
-            try {
-                await pc.addIceCandidate(candidate)
             } catch (err) {
-                if (!ignoreOffer) {
-                    throw err
-                }
+                console.error(err)
+            } finally {
+                makingOffer = false
             }
         }
-    } catch (err) {
-        console.error(err)
+
+
+        pc.onicecandidate = ({ candidate }) => signaler.send(JSON.stringify({ candidate }))
+
+
+        signaler.onmessage = async message => {
+            try {
+                var data = JSON.parse(message.data)
+                let description = data.description
+                let candidate = data.candidate
+                let finish = data.finish
+                let newpeer = data.newpeer
+
+                if (description) {
+                    const offerCollision = 
+                        description.type === 'offer' && 
+                        (makingOffer || pc.signalingState !== 'stable')
+                    
+                    ignoreOffer = !polite && offerCollision
+                    if (ignoreOffer) {
+                        return
+                    }
+
+                    await pc.setRemoteDescription(description)
+                    if (description.type === 'offer') {
+                        await pc.setLocalDescription()
+                        signaler.send(JSON.stringify({ description: pc.localDescription }))
+                    }
+                } else if (candidate) {
+                    try {
+                        await pc.addIceCandidate(candidate)
+                    } catch (err) {
+                        if (!ignoreOffer) {
+                            throw err
+                        }
+                    }
+                } else if (finish) {
+                    this.$refs.remoteview.srcObject = null
+                }
+            } catch (err) {
+                console.error(err)
+            }
+        }
+
+        window.addEventListener('beforeunload', async (event) => {
+            await this.finish()
+        })
+    },
+
+    methods: {
+        async finish() {
+            if (this.$refs.selfview.srcObject) {
+                this.$refs.selfview.srcObject.getTracks().forEach(track => track.stop())
+                this.$refs.selfview.srcObject = null
+                signaler.send(JSON.stringify({ finish: true }))
+            }
+        },
+
+        async start() {
+            try {
+                const stream = await navigator.mediaDevices.getDisplayMedia(contraints)
+
+                for (const track of stream.getTracks()) {
+                    pc.addTrack(track, stream)
+                }
+
+                this.$refs.selfview.srcObject = stream
+            } catch (err) {
+                console.error(err)
+            }
+        },
     }
-}
+})
 </script>
 <script src="{% static 'help/javascript/adapter-latest.js' %}"></script>
 </html>

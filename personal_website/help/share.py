@@ -177,7 +177,6 @@ def share(request, room):
 
 socket_set = set()
 
-
 async def handle_message(websocket, path):
     # # 新的连接建立
     # meta = await websocket.recv() # 接受元信息
@@ -187,11 +186,15 @@ async def handle_message(websocket, path):
 
     # # 建立连接，加入房间
     # await handle_join(meta, websocket)
+
     socket_set.add(websocket)
     
     while True:
         try:
             message = await websocket.recv()
+            if len(socket_set == 1):
+                # 目前没有人，先暂存消息
+
             for socket in socket_set:
                 if socket is not websocket:
                     await socket.send(message)
