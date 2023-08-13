@@ -81,6 +81,7 @@ new Vue({
                 let candidate = data.candidate
                 let finish = data.finish
                 let reject = data.reject
+                let online = data.online 
 
                 if (description) {
                     const offerCollision = 
@@ -109,6 +110,10 @@ new Vue({
                     this.$refs.remoteview.srcObject = null
                 } else if (reject) {
                     alert(reject.reason)
+                } else if (online) {
+                    if (online.number == 1) {
+                        
+                    }
                 }
             } catch (err) {
                 console.error(err)
