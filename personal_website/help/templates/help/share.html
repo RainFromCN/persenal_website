@@ -7,13 +7,84 @@
     <title>{{follow.request.title}}</title>
     <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
     <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <style>
+        * {padding: 0; margin: 0}
+
+        video::-webkit-media-controls-current-time-display{
+            display: none;            
+        }
+        video::-webkit-media-controls-time-remaining-display {
+            display: none;            
+        }
+        video::-webkit-media-controls-timeline {
+            display: none;
+        }
+        video::-webkit-media-controls-mute-button {
+            display: none;            
+        }
+        video::-webkit-media-controls-volume-slider {
+            display: none;            
+        }
+        video {
+            width: 100%;
+            height: auto;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, .12), 0 0 6px rgba(0, 0, 0, .04);
+        }
+
+        body {
+            background-color: #F2F6FC
+        }
+    </style>
 </head>
 <body>
     <div id="app">
-        <el-button type="primary" @click="start">打开媒体</el-button>
-        <el-button type="primary" @click="finish">关闭媒体</el-button>
-        <video autoplay muted ref="selfview" playsinline style="background-color: antiquewhite;"></video>
-        <video autoplay ref="remoteview" playsinline style="background-color: aquamarine;"></video>
+        <el-dialog :visible.sync="welcom_visible" title="温馨提示">
+            <div>
+                <span style="font-size: 14px; color: #303133">为了保护您的权益，平台会备份远程桌面录像</span>
+            </div>
+            <div style="display:flex; justify-content: right; margin-top: 20px">
+                <el-button type="primary" @click="welcom_visible=false; play_now()">确定</el-button>
+            </div>
+        </el-dialog>
+
+        <div style="display: flex; background-color: #F2F6FC">
+            <div class="local-window" style="padding:20px; text-align:center; background-color: white; width: calc(50% - 20px); margin: 20px 0 20px 20px; box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);">
+                <video controls muted ref="selfview" webkit-playsinline playsinline @loadeddata="play_now()"></video>
+                <div style="margin-top: 20px; width: 100%; display:flex; align-items: center; justify-content: left;">
+                    <el-avatar :src="circleUrl"></el-avatar>
+                    <div style="width:10px"></div>
+                    <span style="font-size: 16px; color: #303133" v-text="user_name"></span>
+                    <el-divider direction="vertical"></el-divider>
+                    <span style="color: #606266; font-size: 14px"><i class="el-icon-chat-line-round"></i> 已进入共享页面</span>
+                </div>
+                <div style="height: 80px; display:flex; justify-content: center; align-items: center;">
+                    <el-button v-if="onshare===false" @click="start('share')"><i class="el-icon-video-play"></i> 开启共享</el-button>
+                    <el-button v-else plain type="danger" @click="finish('share')"><i class="el-icon-video-pause"></i> 关闭共享</el-button>
+                    <el-button class="microphone" plain type="danger" v-if="onvoice===true" @click="finish('voice')"><i class="el-icon-turn-off-microphone"></i> 关闭麦克风</el-button>
+                    <el-button class="microphone" v-else @click="start('voice')"><i class="el-icon-microphone"></i> 开启麦克风</el-button>
+                </div>
+            </div>
+            <div class="remote-window" style="padding: 20px; text-align:center; background-color: white; width: calc(50% - 20px); margin: 20px; box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);">
+                <video controls ref="remoteview" webkit-playsinline playsinline @loadeddata="play_now()"></video>
+                
+                <div style="margin-top: 20px; width: 100%; display:flex; align-items: center; justify-content: left;">
+                    <el-avatar :src="circleUrl"></el-avatar>
+                    <div style="width:10px"></div>
+                    <span style="font-size: 16px; color: #303133" v-text="remote_user_name"></span>
+                    <el-divider direction="vertical"></el-divider>
+                    <span v-if="remote_online" style="color: #606266; font-size: 13px"><i class="el-icon-chat-line-round"></i> 已进入共享页面</span>
+                    <span v-else style="color: #606266; font-size: 14px"><i class="el-icon-loading"></i> 未进入共享页面</span>
+                </div>
+                <div style="height: 80px; display:flex; justify-content: center; align-items: center;">
+                    <span v-if="remote_share===false" style="font-size:14px; color: #F56C6C"><i class="el-icon-video-pause"></i> 未开启共享</span>
+                    <span v-else style="font-size:14px; color: #67C23A;"><i class="el-icon-connection"></i> 正在共享</span>
+                    <el-divider direction="vertical"></el-divider>
+                    <span v-if="remote_voice===true" style="font-size:14px; color: #67C23A"><i class="el-icon-microphone"></i></span>
+                    <span v-else style="font-size:14px; color: #F56C6C"><i class="el-icon-turn-off-microphone"></i></span>
+                </div>
+                <audio ref="remoteaudio" @loadeddata="play_now()"></audio> 
+            </div>
+        </div>
     </div>
 </body>
 <script src="https://unpkg.com/vue@2/dist/vue.js"></script>
@@ -21,34 +92,77 @@
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
 
-const config = {}
+const config = {
+    bundlePolicy: "max-bundle",
+    rtcpMuxPolicy: "require",
+    iceTransportPolicy: "relay",
+    iceServers: [
+        {
+            urls: "turn:192.168.17.128:3478?transport=udp",
+            username: "lwh",
+            credential: "137020300"
+        },
+        {
+            urls: "turn:192.168.17.128:3478?transport=tcp",
+            username: "lwh",
+            credential: "137020300"
+        },
+        {
+            urls: "stun:192.168.17.128:3478"
+        }
+    ]
+};
 const signaler = new WebSocket('ws://localhost:8002')
 const pc = new RTCPeerConnection(config)
 
-const contraints = { audio: true, video: true }
-const polite = false
+const contraints = { audio: false, video: true }
 
 
+var polite = false
 var makingOffer = false
 var ignoreOffer = false
 
+
+var local_video_stream = null
+var local_audio_stream = null
+
+
+const name_1 = "{{cooperation.follow.user.name}}"
+const name_2 = "{{cooperation.follow.request.publisher.name}}"
 
 
 new Vue({
     el: '#app',
     data: function() {
         return {
-
+            circleUrl: "https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png",
+            welcom_visible: true,
+            remote_online: false,
+            user_name: "{{usr.name}}",
+            remote_user_name: name_1,
+            onshare: false,  // 记录当前是否正在共享
+            onvoice: false,  // 记录当前是否开麦
+            remote_share: false,
+            remote_voice: false,
         }
     },
 
     mounted() {
+
+        if (this.user_name === name_1) {
+            this.remote_user_name = name_2
+            polite = true
+        }
+
         pc.ontrack = ({ track, streams }) => {
             track.onunmute = () => {
-                if (this.$refs.remoteview.srcObject) {
-                    return
+                if (track.kind === 'video') {
+                    this.remote_share = true
+                    this.$refs.remoteview.srcObject = streams[0]
+                } else if (track.kind == 'audio') {
+                    this.remote_voice = true
+                    this.$refs.remoteaudio.srcObject = streams[0]
                 }
-                this.$refs.remoteview.srcObject = streams[0]
             }
         }
 
@@ -79,7 +193,7 @@ new Vue({
                 var data = JSON.parse(message.data)
                 let description = data.description
                 let candidate = data.candidate
-                let finish = data.finish
+                let finish_signal = data.finish
                 let reject = data.reject
                 let online = data.online 
 
@@ -106,14 +220,33 @@ new Vue({
                             throw err
                         }
                     }
-                } else if (finish) {
-                    this.$refs.remoteview.srcObject = null
+                } else if (finish_signal) {
+                    if (finish_signal.media_type === 'all') {
+                        this.$refs.remoteview.srcObject = null
+                        this.$refs.remoteaudio.srcObject = null
+                        this.remote_share = false
+                        this.remote_voice = false
+                    } else if (finish_signal.media_type === 'voice') {
+                        this.$refs.remoteaudio.srcObject = null
+                        this.remote_voice = false
+                    } else if (finish_signal.media_type === 'share') {
+                        this.$refs.remoteview.srcObject = null
+                        this.remote_share = false
+                    }
+                    
                 } else if (reject) {
                     alert(reject.reason)
+                    window.close()
                 } else if (online) {
-                    if (online.number == 1) {
-                        
+                    if (online.number == 2) {
+                        this.remote_online = true
+                        if (pc.localDescription || pc.remoteDescription) {
+                            await this.reset()
+                        }
+                    } else if (online.number == 1) {
+                        this.remote_online = false
                     }
+                    
                 }
             } catch (err) {
                 console.error(err)
@@ -121,32 +254,44 @@ new Vue({
         }
 
         window.addEventListener('beforeunload', async (event) => {
-            await this.finish()
+            await this.finish('all')
             await signaler.close()
             await pc.close()
         })
-
-        
     },
 
     methods: {
-        async finish() {
-            if (this.$refs.selfview.srcObject) {
-                this.$refs.selfview.srcObject.getTracks().forEach(track => track.stop())
+        async finish(media_type) {
+            if (local_video_stream && (media_type === 'share' || media_type === 'all')) {
+                local_video_stream.getTracks().forEach(track => track.stop())
                 this.$refs.selfview.srcObject = null
-                signaler.send(JSON.stringify({ finish: true }))
+                signaler.send(JSON.stringify({ finish: { media_type: media_type } }))
+                this.onshare = false
+            } else if (local_audio_stream && (media_type === 'voice' || media_type === 'all')) {
+                local_audio_stream.getTracks().forEach(track => track.stop())
+                signaler.send(JSON.stringify({ finish: { media_type: 'voice'} }))
+                this.onvoice = false
             }
         },
 
-        async start() {
+        async start(media_type) {
             try {
-                const stream = await navigator.mediaDevices.getDisplayMedia(contraints)
-
-                for (const track of stream.getTracks()) {
-                    pc.addTrack(track, stream)
+                if (media_type === 'share') {
+                    const video_stream = await navigator.mediaDevices.getDisplayMedia(contraints)
+                    for (const track of video_stream.getTracks()) {
+                        pc.addTrack(track, video_stream)
+                    }
+                    this.$refs.selfview.srcObject = video_stream
+                    local_video_stream = video_stream
+                    this.onshare = true
+                } else if (media_type === 'voice') {
+                    const audio_stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+                    for (const track of audio_stream.getTracks()) {
+                        pc.addTrack(track, audio_stream)
+                    }
+                    local_audio_stream = audio_stream
+                    this.onvoice = true
                 }
-
-                this.$refs.selfview.srcObject = stream
             } catch (err) {
                 console.error(err)
             }
@@ -158,6 +303,24 @@ new Vue({
             } catch (err) {
                 console.error(err)
             }
+        },
+
+        async reset() {
+            try {
+                makingOffer = true
+                await pc.setLocalDescription()
+                signaler.send(JSON.stringify({ description: pc.localDescription }))
+            } catch (err) {
+                console.error(err)
+            } finally {
+                makingOffer = false
+            }
+        },
+
+        play_now() {
+            this.$refs.selfview.play()
+            this.$refs.remoteview.play()
+            this.$refs.remoteaudio.play()
         },
     }
 })

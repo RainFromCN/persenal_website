@@ -21,25 +21,23 @@ def share(request, room):
 
 connected_user = set()
 connected_room = dict()
-msg_que = queue.Queue()
 
-count = 0
-mutex = threading.Lock()
-online = threading.Semaphore(0)
+count = dict()
+mutex = dict()
 
 
-async def notify_online(meta, num):
+async def notify_online(meta, num, notify_self=False):
     room = meta['room']
     user = meta['user']
 
     if room in connected_room:
-        for remote_user, remote_client in connected_room[room]:
-            if remote_user != user:
+        for remote_user, remote_client in connected_room[room].items():
+            if remote_user != user or notify_self:
                 await remote_client.send(json.dumps({'online': {'number': f'{num}'}}))
 
 
 async def handle_entry(meta, socket):
-    global count, online
+    global count, mutex
     room = meta['room']
     user = meta['user']
     
@@ -52,18 +50,18 @@ async def handle_entry(meta, socket):
     # 将用户加入房间
     if room not in connected_room:
         connected_room[room] = dict()
+        count[room] = 0
+        mutex[room] = threading.Lock()
     elif len(connected_room[room]) >= 2:
         await socket.send(json.dumps({'reject': {'reason': '该房间人数已满'}}))
         return False
     connected_room[room][user] = socket
 
-    # 必须双方都登录才能发送信息
-    mutex.acquire()
-    count += 1
-    if count == 2:
-        await notify_online(meta, 2)
-        online.release()
-    mutex.release()
+    # 通知对方目前房间在线人数
+    mutex[room].acquire()
+    count[room] += 1
+    await notify_online(meta, count[room], notify_self=True)
+    mutex[room].release()
 
     return True
 
@@ -80,10 +78,12 @@ async def handle_leave(meta):
         del connected_room[room][user]
         if len(connected_room[room]) == 0:
             del connected_room[room]
+            del mutex[room]
+            del count[room]
 
 
 async def handle_message(websocket, path):
-    global count, online, msg_que
+    global count
 
     # 检查是否是加入信令
     meta = await websocket.recv() # 接受元信息
@@ -94,6 +94,8 @@ async def handle_message(websocket, path):
     
     # 加入房间
     meta = meta['entry']
+    room = meta['room']
+    user = meta['user']
     if not await handle_entry(meta, websocket):
         return
     
@@ -102,19 +104,18 @@ async def handle_message(websocket, path):
             message = await websocket.recv()
 
             # 向房间内所有其他用户广播信令
-            msg_que.put((meta, message))
+            for client in (client for u, client in connected_room[room].items() if u != user):
+                await client.send(message)
 
         except websockets.exceptions.ConnectionClosed:
-            # 连接正常关闭或者异常关闭
-            await handle_leave(meta)
+            # 通知其他人目前房间在线人数
+            mutex[room].acquire()
+            count[room] -= 1
+            await notify_online(meta, count[room])
+            mutex[room].release()
 
-            # 当某个人退出的时候，改变信号量
-            mutex.acquire()
-            count -= 1
-            if count == 1:
-                await notify_online(meta, 1)
-                online.acquire()
-            mutex.release()
+            # 清除服务器数据
+            await handle_leave(meta)
 
             break
 
@@ -124,36 +125,11 @@ async def main():
         await asyncio.Future()  # 保持服务器运行
 
 
-async def sending_thread():
-    global online, msg_que
-    while True:
-        item = msg_que.get()
-        meta, msg = item
-        room, user = meta['room'], meta['user']
-    
-        online.acquire()
-
-        # 向所有用户转发消息
-        for other, socket in connected_room[room].items():
-            if user != other:
-                await socket.send(msg)
-        
-        online.release()
-
-
 def share_server():
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
     loop.run_until_complete(main())
 
 
-def signal_server():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(sending_thread())
-
-
-th1 = threading.Thread(target=signal_server, daemon=True)
-th2 = threading.Thread(target=share_server, daemon=True)
-th1.start()
-th2.start()
+th = threading.Thread(target=share_server, daemon=True)
+th.start()

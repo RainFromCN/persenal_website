@@ -45,6 +45,10 @@
                 box-shadow: 0 2px 4px rgba(0, 0, 0, .12), 0 0 6px rgba(0, 0, 0, .04);
                 max-width: 70%;
             }
+
+            body {
+                background-color: #F2F6FC
+            }
         </style>
     </head>
 
@@ -64,15 +68,15 @@
                 </template>
             </el-dialog>
 
-            <div style="width: 70vw;">
-                <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin: 20px; padding: 20px;">
+            <div style="width: 62vw;">
+                <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin: 20px; padding: 20px; background-color: white;">
                     <el-steps :active="active_step" align-center finish-status="success">
                         {% for step in cooperation.follow.procedure.procedurestep_set.all %}
                         <el-step title="{{step.title}}" description="{{step.discription}}"></el-step>
                         {% endfor %}
                     </el-steps>
                 </div>
-                <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin: 20px; padding: 20px;">
+                <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin: 20px; padding: 20px; background-color: white;">
                     <div style="display:flex; justify-content: center; align-items:center;padding:20px;padding-top:0; color:#303133;">
                         <span style="font-size: 16px; color:#409EFF;"><i class="el-icon-s-cooperation"></i> 工作台</span>
                     </div>
@@ -244,7 +248,7 @@
                     <!--/第三步-->
                     {% endif %}
                 </div>
-                <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin: 20px; padding: 20px;">
+                <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin: 20px; padding: 20px; background-color: white;">
                     <div style="display:flex; justify-content: center; align-items:center;padding:20px;padding-top:0; color:#303133;">
                         <span style="font-size: 16px; color:#409EFF;"><i class="el-icon-question"></i> Q&A</span>
                     </div>
@@ -293,19 +297,21 @@
                     </el-collapse>
                 </div>
             </div>
-            <div style="width: 30vw; height: 100vh; position:fixed; left: 70vw">
-                <div style="background-color: #F2F6FC; height: calc(100% - 40px);box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin: 20px; margin-left: 0;">
-                    <div style="height: 40px; display:flex; align-items:center; justify-content: center;">
+            <div style="width: 38vw; height: 100vh; position:fixed; left: 62vw; background-color: #F2F6FC;">
+                <div style="background-color: white; height: calc(100% - 40px);box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin: 20px; margin-left: 0;">
+                    <div style="font-size: 16px; color:#409EFF; padding:20px; display:flex; align-items: center; justify-content: center;">
+                        <i class="el-icon-user-solid"></i><span style="margin-left: 5px">谈判桌</span>
+                        <el-divider direction="vertical"></el-divider>   
                         <div v-if="online === true" style="display:flex; align-items: center; justify-content: center;">
                             <span style="color: #606266; font-size: 13px"><i class="el-icon-chat-line-round"></i> 对方在线</span>
                         </div>
                         <div v-else>
                             <span style="color: #606266; font-size: 13px"><i class="el-icon-loading"></i> 对方不在线</span>
                         </div>
-                    </div>
+                    </div>                        
                     <template>
-                        <div ref="chatBoxContainer" style="overflow-y:auto; scroll-margin-top: auto; margin-left: 5px; margin-right: 5px; padding: 5px; background-color: #FFFFFF; border: 1px solid #DCDFE6; border-radius:10px; height: calc(100% - 130px);">
-                            <ul>
+                        <div ref="chatBoxContainer" style="overflow-y:auto; scroll-margin-top: auto; margin-left: 20px; margin-right: 20px; padding: 20px; background-color: #FFFFFF; border: 1px solid #DCDFE6; border-radius:10px; height: calc(100% - 182px);">
+                            <ul style="list-style: none">
                                 <li v-for="msg in chat_msgs">
                                     <div v-if="msg.username === '{{usr.name}}'" style="display:flex; align-items:flex-start; justify-content: right;">
                                         <div class="chat-msg" v-text="msg.msg"></div>
@@ -319,12 +325,23 @@
                             </ul>
                         </div>
                     </template>
-                    <div style="padding-left: 5px; padding-right:5px; height: 80px; display:flex; align-items: center;">
-                        <el-input v-model="chat_text" placeholder="请输入聊天内容" id="submitChatKey"></el-input>
-                        <el-button type="primary" style="border-radius: 0 10px 10px 0" id="submitChatBtn"><i class="el-icon-s-promotion"></i></el-button>
-                        {% with "cooperation."|addstr:cooperation.id as room %}
-                        <el-link href="{% url 'help:share' room %}" target="_blank">远程桌面</el-link>
-                        {% endwith %}
+                    <div style="padding-left: 20px; padding-right:20px; height: 80px; display:flex; align-items: center;">
+                        <div style="width: calc(100% - 130px)">
+                            <el-input v-model="chat_text" placeholder="请输入聊天内容" id="submitChatKey"></el-input>
+                        </div>
+                        <div style="width: 130px; text-align: right;">
+                            <el-button-group>
+                                <el-tooltip class="item" effect="dark" content="发送信息" placement="top-end">
+                                    <el-button type="primary" style="border-radius: 10px 0px 0px 10px" id="submitChatBtn"><i class="el-icon-s-promotion"></i></el-button>
+                                </el-tooltip>
+                                {% with "cooperation."|addstr:cooperation.id as room %}
+                                <el-tooltip class="item" effect="dark" content="远程桌面共享 & 语音" placement="top-end">
+                                    <a href="{% url 'help:share' room %}" target="_blank"><el-button type="primary" style="border-radius: 0 10px 10px 0"><i class="el-icon-video-camera-solid"></i></el-button></a>
+                                </el-tooltip>
+                                {% endwith %}
+                            </el-button-group>
+                        </div>
+
                     </div>
                 </div>
             </div>
