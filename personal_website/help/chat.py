@@ -1,5 +1,6 @@
 from django.http.response import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
 import asyncio
 import websockets
 import json
@@ -92,7 +93,9 @@ async def handle_message(websocket, path):
 
 
 async def main():
-    async with websockets.serve(handle_message, "localhost", 8001):
+    # 获取域名
+    domain = settings.CHAT_SERVER_SITE.split(':')
+    async with websockets.serve(handle_message, *domain):
         await asyncio.Future()  # 保持服务器运行
 
 

@@ -1,0 +1,222 @@
+{% load static %}
+
+<html lang="en-US">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width"/>
+    <title>{{follow.request.title}}</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <style>
+        * {padding: 0; margin: 0}
+        body {
+            background-color: #F2F6FC
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <el-dialog title="处理申诉" :visible.sync="handle_appeal_visible">
+        <el-input type="textarea" placeholder="请输入处理结果" v-model="handle_result" maxlength="300" show-word-limit></el-input>
+        <el-button style="margin-top:20px" type="primary" @click="handleAppeal(current_coop_id)">提交</el-button>
+    </el-dialog>
+
+    <el-tabs style="padding:20px" v-model="activeName">
+        <el-tab-pane label="押金管理" name="first" style="padding: 20px;">
+            {% for coop in on_deposit %}
+            <el-descriptions title="COOPID-{{coop.id}}" style="padding:20px" :column="4" :size="'small'" border>
+                <template slot="extra">
+                    <el-button type="primary" v-html="alipay_verify" size="small" @click="checkDeposit({{coop.id}})"></el-button>
+                    <el-button type="primary" v-html="client_deposit_refund" size="small" @click="refundDeposit({{coop.id}}, 'client')"></el-button>
+                    <el-button type="primary" v-html="server_deposit_refund" size="small" @click="refundDeposit({{coop.id}}, 'server')"></el-button>
+                </template>
+                <el-descriptions-item :span="2"><template slot="label">需求名称</template>{{coop.follow.request.title}}</el-descriptions-item>
+                <el-descriptions-item><template slot="label">是否处于申诉</template>{{coop.is_appeal}}</el-descriptions-item>
+                <el-descriptions-item><template slot="label">当前状态</template>{{coop.active|add:1}}</el-descriptions-item>
+                <el-descriptions-item><template slot="label">竞方</template>{{coop.follow.user.name}}</el-descriptions-item>
+                <el-descriptions-item><template slot="label">竞方上次登录时间</template>{{coop.follow.user.last_login}}</el-descriptions-item>
+                <el-descriptions-item><template slot="label">需方</template>{{coop.follow.request.publisher.name}}</el-descriptions-item>
+                <el-descriptions-item><template slot="label" >需方上次登录时间</template>{{coop.follow.request.publisher.last_login}}</el-descriptions-item>
+                <el-descriptions-item><template slot="label">竞方当前押金</template>{{coop.server_deposit}} </el-descriptions-item>
+                <el-descriptions-item><template slot="label">竞方主动取消合作</template>{{coop.server_cancel}}</el-descriptions-item>
+                <el-descriptions-item><template slot="label">需方当前押金</template>{{coop.client_deposit}}</el-descriptions-item>
+                <el-descriptions-item><template slot="label">需方主动取消合作</template>{{coop.client_cancel}}</el-descriptions-item>
+            </el-descriptions>
+            {% endfor %}
+        </el-tab-pane>
+        <el-tab-pane label="申诉处理" name="second">
+            {% for appeal in appealing %}
+            <el-descriptions title="COOPID-{{appeal.coop.id}}" style="padding:20px" :column="4" :size="'small'" border>
+                <template slot="extra">
+                    <el-button type="primary" v-html="alipay_verify" size="small" @click="checkDeposit({{appeal.coop.id}})"></el-button>
+                    <el-button type="primary" v-html="client_deposit_refund" size="small" @click="refundDeposit({{appeal.coop.id}}, 'client')"></el-button>
+                    <el-button type="primary" v-html="server_deposit_refund" size="small" @click="refundDeposit({{appeal.coop.id}}, 'server')"></el-button>
+                    <el-button type="primary" size="small" @click="handle_appeal_visible = true; current_coop_id = {{appeal.coop.id}}">处理申诉</el-button>
+                </template>
+                <el-descriptions-item :span="2"><template slot="label">申诉人</template>{{appeal.initiator.name}}</el-descriptions-item>
+                <el-descriptions-item :span="2"><template slot="label">联系方式</template>{{appeal.mobile}}</el-descriptions-item>
+                <el-descriptions-item :span="4"><template slot="label">申诉原因</template>{{appeal.reason}}</el-descriptions-item>
+                <el-descriptions-item :span="4"><template slot="label">期望结果</template>{{appeal.expect_result}}</el-descriptions-item>
+            </el-descriptions>
+            {% endfor %}
+        </el-tab-pane>
+        <el-tab-pane label="付款管理" name="third">
+            {% for transfer in transfering %}
+            <el-descriptions title="COOPID-{{transfer.coop.id}}" style="padding:20px" :column="4" :size="'small'" border>
+                <template slot="extra">
+                    <el-button type="primary" v-html="check_payment_btn_html" size="small" @click="checkPayment({{transfer.id}})"></el-button>
+                    <el-button type="primary" v-html="check_transfer_btn_html" size="small" @click="checkTransfer({{transfer.id}})"></el-button>
+                    <el-button type="primary" v-html="transfer_button_html" size="small" @click="transferPayment({{transfer.id}})"></el-button>
+                </template>
+                <el-descriptions-item :span="1"><template slot="label">付款状态</template>{{transfer.step}}</el-descriptions-item>
+                <el-descriptions-item :span="1"><template slot="label">当前状态</template>{{transfer.coop.active}}</el-descriptions-item>
+                <el-descriptions-item :span="1"><template slot="label">付款金额</template>{{transfer.amount}}</el-descriptions-item>
+                <el-descriptions-item :span="2"><template slot="label">付款时间</template>{{transfer.datetime}}</el-descriptions-item>
+            </el-descriptions>
+            {% endfor %}
+        </el-tab-pane>
+    </el-tabs>
+</div>
+</body>
+<script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+new Vue({
+    el: '#app',
+    data: function() {
+        return {
+            activeName: 'first',
+            alipay_verify: '支付宝验证',
+            client_deposit_refund: '退还需方押金',
+            server_deposit_refund: '退还竞方押金',
+            transfer_button_html: '转交款项',
+            check_transfer_btn_html: '验证去款',
+            check_payment_btn_html: '验证来款',
+            handle_appeal_visible: false,
+            current_coop_id: null,
+
+            handle_result: ''
+        }
+    },
+
+    mounted() {
+
+    },
+
+    methods: {
+        checkDeposit(coop_id) {
+            const data = {
+                coop_id: coop_id,
+            }
+            const headers = {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            this.alipay_verify = "支付宝验证 <i class='el-icon-loading'></i>"
+            axios.post('/help/check/deposit/', data, { headers })
+            .then(response => {
+                this.alipay_verify = "支付宝验证"
+                this.$alert(response.data.message)
+            })
+        },
+
+        refundDeposit(coop_id, role) {
+            const data = {
+                coop_id: coop_id,
+                role: role
+            }
+            const headers = {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            if (role == 'client') {
+                this.client_deposit_refund = "退还需方押金 <i class='el-icon-loading'></i>"
+            } else if (role == 'server') {
+                this.server_deposit_refund = "退还竞方押金 <i class='el-icon-loading'></i>"
+            }
+            
+            axios.post('/help/refund/deposit/', data, { headers })
+            .then(response => {
+                this.client_deposit_refund = "退还需方押金"
+                this.server_deposit_refund = "退还竞方押金"
+                if (response.data.message) {
+                    this.$alert('错误：' + response.data.message)
+                } else if (response.data.success) {
+                    this.$alert('成功退还押金')
+                }
+            })
+        },
+
+        handleAppeal(coop_id) {
+            const data = {
+                coop_id: coop_id,
+                result: this.handle_result
+            }
+            const headers = {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            axios.post('/help/submit/appeal_result/', data, { headers })
+            .then(response => {
+                if (response.data.message) {
+                    this.$alert('提交失败：' + response.data.message)
+                } else if (response.data.success) {
+                    this.$alert('提交成功')
+                }
+            })
+        },
+
+        transferPayment(t_id) {
+            const data = {
+                id: t_id,
+            }
+            const headers = {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            this.transfer_button_html = '转交款项 <i class="el-icon-loading"></i>'
+            axios.post('/help/transfer_payment/', data, { headers })
+            .then(response => {
+                this.transfer_button_html = "转交款项"
+                if (response.data.message) {
+                    this.$alert('转移失败：' + response.data.message)
+                } else if (response.data.success) {
+                    this.$alert('转移成功')
+                }
+            })
+        },
+
+        checkPayment(t_id) {
+            const data = {
+                id: t_id,
+            }
+            const headers = {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            this.check_payment_btn_html = "验证来款 <i class='el-icon-loading'></i>"
+            axios.post('/help/check/payment/', data, { headers })
+            .then(response => {
+                this.check_payment_btn_html = "验证来款"
+                if (response.data.message) {
+                    this.$alert(response.data.message)
+                } 
+            })
+        },
+
+        checkTransfer(t_id) {
+            const data = {
+                id: t_id,
+            }
+            const headers = {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            }
+            this.check_transfer_btn_html = "验证去款 <i class='el-icon-loading'></i>"
+            axios.post('/help/check/transfer/', data, { headers })
+            .then(response => {
+                this.check_transfer_btn_html = "验证去款"
+                if (response.data.message) {
+                    this.$alert(response.data.message)
+                } 
+            })
+        },
+    }
+})
+</script>
+</html>

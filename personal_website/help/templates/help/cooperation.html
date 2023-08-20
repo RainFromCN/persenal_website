@@ -54,16 +54,69 @@
 
     <body>
         <div id="app" style="display: flex;">
+
+            <el-dialog title="填写申诉原因" :visible.sync="appeal_dialog_visible" width="70%">
+                <el-form :model="appeal_form_model" ref="appeal_form" label-width="80px" :rules="appeal_form_rules">
+                    <el-form-item label="手机号码" prop="mobile">
+                        <el-input type="text" placeholder="请输入手机号码" v-model="appeal_form_model.mobile" maxlength="11" minlength="11"></el-input>
+                    </el-form-item>
+                    <el-form-item label="申诉原因" prop="reason">
+                        <el-input type="textarea" placeholder="请输入内容" v-model="appeal_form_model.reason" maxlength="200" show-word-limit></el-input>
+                    </el-form-item>
+                    <el-form-item label="期望结果" prop="result">
+                        <el-input type="textarea" placeholder="请输入内容" v-model="appeal_form_model.result" maxlength="200" show-word-limit></el-input>
+                    </el-form-item>
+                    <el-form-item>
+                        <el-button type="primary" @click="submitAppeal">提交申诉</el-button>
+                        <el-button @click="appeal_dialog_visible = false">取消</el-button>
+                    </el-form-item>
+                </el-form>
+            </el-dialog>
+
+            <el-dialog title="取消合作" :visible.sync="cancel_confirm_visible" width="70%">
+                {% if cooperation.active >= 2 %}
+                <span>如果取消合作，<strong>将不会退还您的 {{0.1|mul:cooperation.follow.bid_price}} 元押金</strong>。您确定要继续取消合作吗？</span>
+                {% else %}
+                <span>取消合作将不会对您产生任何不利影响。您确定要继续取消合作吗？</span>
+                {% endif %}
+                <div style="padding-top: 20px; display:flex; align-items: center; justify-content: center;">
+                    <el-button type="primary" @click="cancel_confirm_visible = false">再想想</el-button>
+                    <el-button type="danger" @click="submitCancelCooperation">仍要取消</el-button>
+                </div>
+            </el-dialog>
+
             <el-dialog title="需求文档预览" :visible.sync="document_visible" width="70%">
                 <div v-html="html_document" class="preview_document"></div>
             </el-dialog>
 
-            <el-dialog title="请您确认" :visible.sync="step2_confirm_visible">
-                <div style="font-size: 14px; color:#606266">请您确认已经完成，若您进入验收环节后，在7天之内没有主动参与验收，则平台会认为您有违约现象，并自动从押金中扣除部分违约金</div>
+            <el-dialog title="支付" :visible.sync="step2_confirm_visible">
+                <div style="font-size: 14px; color:#606266; line-height: 200%;">
+                    <div>
+                        请您主动添加对方微信或支付宝好友，并支付 <strong>{{cooperation.follow.procedure.procedurestep_set.all.2.pay|div:100|mul:cooperation.follow.bid_price}} 元</strong> 作为付款。
+                    </div>
+                    <div style="margin-top:5px;">
+                        支付完成后，请通知对方点击“收到付款”按钮，以便进行下一步操作。
+                    </div>
+                </div>
                 <template>
                     <div style="display: flex; align-items: center; justify-content: center; padding-top:20px;">
-                        <el-button type="primary" @click="entryNextSubmit">确认完成</el-button>
                         <el-button plain @click="step2_confirm_visible = false">取消</el-button>
+                    </div>
+                </template>
+            </el-dialog>
+
+            <el-dialog title="支付" :visible.sync="step3_confirm_visible">
+                <div style="font-size: 14px; color:#606266; line-height: 200%">
+                    <div>
+                        请您主动添加对方微信或支付宝好友，并支付 <strong>{{cooperation.follow.procedure.procedurestep_set.all.3.pay|div:100|mul:cooperation.follow.bid_price}} 元</strong> 作为付款。
+                    </div>
+                    <div style="margin-top: 5px;">
+                        支付完成后，请通知对方点击“<strong>收到付款</strong>”按钮，以便进行下一步操作。
+                    </div>
+                </div>
+                <template>
+                    <div style="display: flex; align-items: center; justify-content: center; padding-top:20px;">
+                        <el-button plain @click="step3_confirm_visible = false">取消</el-button>
                     </div>
                 </template>
             </el-dialog>
@@ -80,172 +133,168 @@
                     <div style="display:flex; justify-content: center; align-items:center;padding:20px;padding-top:0; color:#303133;">
                         <span style="font-size: 16px; color:#409EFF;"><i class="el-icon-s-cooperation"></i> 工作台</span>
                     </div>
-                    {% if cooperation.active == 0 %}
-                    <!--第一步-->
+                    {% if cooperation.is_appeal == True %}
+                    <!--当前处于申诉状态-->
+                    {% if cooperation.cooperationappealing_set.all.0.is_finished == False %}
+                    <!--申诉还没有处理结果-->
+                    {% if usr == cooperation.cooperationappealing_set.all.0.initiator %}
+                    <el-result icon="warning" title="当前合作正处于申诉状态" sub-title="您已提起申诉，请等待平台处理结果">
+                        <template slot="extra">
+                            <el-button type="primary" size="medium" @click="cancelAppeal">取消申诉</el-button>
+                        </template>
+                    </el-result>
+                    {% else %}
+                    <el-result icon="warning" title="当前合作正处于申诉状态" sub-title="对方已提起申诉，请等待平台处理结果"></el-result>
+                    {% endif %}
+                    {% else %}
+                    <!--申诉已经有了处理结果-->
+                    {% if usr == cooperation.cooperationappealing_set.all.0.initiator %}
+                    <el-result icon="success" title="申诉已处理" sub-title="{{cooperation.cooperationappealing_set.all.0.result}}"></el-result>
+                    {% else %}
+                    <el-result icon="success" title="申诉已处理" sub-title="{{cooperation.cooperationappealing_set.all.0.result}}"></el-result>
+                    {% endif %}
+                    {% endif %}
+                    {% else %}
                     {% if cooperation.follow.user == usr %}
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 请您主动与对方交流，明确对方需求，并在下面的输入框内撰写需求文档</div>
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 提交完成后，请主动联系对方进行核对</div>
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 如果对方有修改意见，则您应修改需求并重新提交</div>
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 如果对方没有修改意见，则您应主动通知对方，让对方操作进入下一个合作环节</div>
+                    <!--竞标者-->
+                    {% for substep in substeps %}
+                    {% if substep.type == 1 %}
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> {{substep.content}}</div>
+                    {% endif %}
+                    {% endfor %}
+                    {% if cooperation.active == 0 %}
+                    <!--第1步-->
                     <el-input :autosize="{minRows: 10}" type="textarea" placeholder="请输入需求文档" v-model="request_document" maxlength="2000" show-word-limit></el-input>
                     <div style="display: flex; align-items:center; justify-content: center; margin-top: 20px;">
                         <el-button @click="previewDocument">预览</el-button>
                         <el-button type="primary" @click="requestDocumentSubmit">提交</el-button>
+                        <el-button type="danger" @click="cancel_confirm_visible = true">取消合作</el-button>
+                    </div>
+                    {% elif cooperation.active == 1 %}
+                    <!--第2步-->
+                    {% if cooperation.client_deposit != 0 %}
+                    <div style="font-size:14px; color: #909399; margin-bottom:20px">对方已经支付押金，请您尽快支付</div>
+                    {% endif %}
+                    {% if cooperation.server_deposit == 0 %}
+                    <div style="font-size:14px; color: #909399; margin-bottom:20px">
+                        <span style="margin-right:20px">选择支付方式</span>
+                        <el-radio-group v-model="pay_method">
+                            <el-radio :label="'alipay'">支付宝</el-radio>
+                        </el-radio-group>
+                    </div>
+                    <div style="text-align: center;">
+                        <el-button type="primary" v-html="pay_immediate_html" @click="getDepositPayLink(pay_method)"></el-button>
+                        <el-button type="danger" @click="cancel_confirm_visible = true">取消合作</el-button>
                     </div>
                     {% else %}
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 请您配合对方的交流，并耐心等待对方撰写需求文档</div>
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 对方提交需求文档之后，刷新本页面点击“查看需求文档”即可审阅</div>
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 若您对需求文档满意，则可直接“进入下一环节”</div>
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 若您对需求文档不满意，则可给对方提修改意见让其重写，或“取消合作”</div>
+                    <div style="font-size:14px; color: #909399">您已支付押金，请等待对方完成押金支付</div>
+                    {% endif %}
+                    {% elif cooperation.active == 2 %}
+                    <!--第3步-->
+                    <div style="font-size:14px; color: #909399">对方尚未付款，付款后可进入下一环节</div>
+                    {% elif cooperation.active == 3 %}
+                    <!--第4步-->
+                    <div style="font-size:14px; color: #909399">对方尚未点击“部署完成”，点击后可进入下一环节</div>
+                    {% elif cooperation.active == 4 %}
+                    <!--第5步-->
+                    {% if cooperation.serverfeedback_set.all.count == 0 %}
+                    <div style="text-align: center;">
+                        {% if cooperation.client_cancel == True %}
+                        <div style="margin-bottom: 20px;"><span style="font-size: 14px; color:#909399">对方已取消合作，请完成评价</span></div>
+                        {% elif cooperation.server_cancel == True %}
+                        <div style="margin-bottom: 20px;"><span style="font-size: 14px; color:#909399">您已取消合作，请完成评价</span></div>
+                        {% else %}
+                        <div style="margin-bottom: 20px;"><span style="font-size: 14px; color:#909399">请完成评价</span></div>
+                        {% endif %}
+                        <div style="margin-bottom: 20px;"><el-rate v-model="rate"></el-rate></div>
+                        <div style="margin-bottom: 20px;"><el-input type="textarea" placeholder="请输入评价" v-model="review" maxlength="100" show-word-limit></el-input></div>
+                    </div>
+                    <div style="text-align: center;"><el-button type="primary" plain @click="submitRateAndReview"><span v-html="submit_feedback_client"></span></el-button></div>
+                    {% elif cooperation.server_cancel == False %}
+                    <el-result icon="success" title="感谢您的配合" sub-title="希望有机会与您再次合作"></el-result>
+                    {% elif cooperation.server_cancel == True and cooperation.server_deposit > 0 %}
+                    <el-result icon="warning" title="合作已取消" sub-title="由于您中途取消了合作，押金将不会被退还"></el-result>
+                    {% elif cooperation.server_cancel == True and cooperation.server_deposit == 0 %}
+                    <el-result icon="success" title="合作已取消" sub-title="感谢您的支持，我们将始终保护您的权益"></el-result>
+                    {% endif %}
+                    {% endif %}
+                    {% else %}
+                    <!--需求者-->
+                    {% for substep in substeps %}
+                    {% if substep.type == 0 %}
+                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> {{substep.content}}</div>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if cooperation.active == 0 %}
+                    <!--第1步-->
                     {% if cooperation.request_document_update == True %}
-                    <el-button type="primary" @click="previewDocument">查看需求文档</el-button>
+                    <el-button @click="previewDocument">查看需求文档</el-button>
                     <el-divider direction="vertical"></el-divider>
                     <span style="font-size:13px; color:#909399">更新时间：{{cooperation.request_document_update_datetime}}</span>
                     {% else %}
-                    <el-button type="primary" disabled>查看需求文档</el-button>
+                    <el-button disabled>查看需求文档</el-button>
                     <el-divider direction="vertical"></el-divider>
                     <span style="font-size:13px; color:#909399">对方尚未提交需求文档</span>
                     {% endif %}
                     <div style="margin-top:20px; display:flex; justify-content: center; align-items:center;">
-                        <span>
-                            <el-button type="success" plain @click="entryNextSubmit">进入下一环节</el-button>
-                        </span>
-                        <span style="margin-left:20px;">
-                            <el-button type="danger" plain>取消合作</el-button>
-                        </span>
+                        <el-button type="primary" @click="entryNextSubmit">审阅通过</el-button>
+                        <el-button type="danger" @click="cancel_confirm_visible = true">取消合作</el-button>
                     </div>
-                    {% endif %}
-                    <!--/第一步-->
                     {% elif cooperation.active == 1 %}
-                    <!--第二步-->
-                    {% if cooperation.follow.user == usr %}
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 请您主动与用户交流，并填写预计完成时期，提交后须经对方同意才可生效</div>
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 对方同意后应在规定日期内完成开发，完成后点击“进入下一环节”</div>
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 若超过预计完成日期后仍未点击“进入下一环节”，则从押金扣除相应违约金</div>
-
-                    <template>
-                        <div style="margin-bottom: 20px">
-                          <div style="font-size: 14px; color:#909399; margin-bottom: 20px;">选择预计完成日期</div>
-                          <el-date-picker v-model="finish_date" type="date" placeholder="选择日期" :timezone='null'>
-                          </el-date-picker>
-                        </div>
-                        <div style="display: flex; align-items: center;">
-                            <div v-if="finish_date === ''">
-                                <el-button type="primary" @click="finishDateSubmit">提交日期</el-button>
-                                
-                            </div>
-                            <div v-else>
-                                <el-button type="primary" @click="finishDateSubmit">提交修改日期</el-button>
-                            </div>
-                            {% if cooperation.predict_finish_date_fix_state == 0 and cooperation.predict_finish_date_fix != '' %}
-                            <el-divider direction="vertical"></el-divider>
-                            <span style="font-size: 14px; color:#909399;"><i class="el-icon-info"></i> 您之前提交的申请尚未被对方查看，请主动联系对方</span>
-                            {% elif cooperation.predict_finish_date_fix_state == 1 %}
-                            <el-divider direction="vertical"></el-divider>
-                            <span style="font-size: 14px; color:rgb(49, 203, 113);"><i class="el-icon-success"></i> 您之前提交的申请已被对方同意</span>
-                            {% elif cooperation.predict_finish_date_fix_state == 2 %}
-                            <el-divider direction="vertical"></el-divider>
-                            <span style="font-size: 14px; color:rgb(203, 49, 49);"><i class="el-icon-error"></i> 您之前提交的申请已被对方拒绝，请沟通后重新提交</span>
-                            {% endif %}
-                        </div>
-                        {% if overdue %}
-                        <div style="font-size: 14px; color:rgb(203, 49, 49); margin-top: 20px;"><i class="el-icon-error"></i> 您已逾期 {{overdue}} 天，平台将从押金中扣除违约金</div>
-                        {% endif %}
-                    </template>
-                    <div style="margin-top:20px; display:flex; justify-content: center; align-items:center;">
-                        <span>
-                            <el-button type="success" plain @click="step2_confirm_visible = true">进入下一环节</el-button>
-                        </span>
+                    <!--第2步-->
+                    {% if cooperation.server_deposit != 0 %}
+                    <div style="font-size:14px; color: #909399; margin-bottom:20px">对方已经支付押金，请您尽快支付</div>
+                    {% endif %}
+                    {% if cooperation.client_deposit == 0 %}
+                    <div style="font-size:14px; color: #909399; margin-bottom:20px">
+                        <span style="margin-right:20px">选择支付方式</span>
+                        <el-radio-group v-model="pay_method">
+                            <el-radio :label="'alipay'">支付宝</el-radio>
+                        </el-radio-group>
+                    </div>
+                    <div style="text-align: center;">
+                        <el-button type="primary" v-html="pay_immediate_html" @click="getDepositPayLink(pay_method)"></el-button>
+                        <el-button type="danger" @click="cancel_confirm_visible = true">取消合作</el-button>
                     </div>
                     {% else %}
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 请您与对方协商预计完成日期，沟通后等待对方提交预计完成日期</div>
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 对方提交后，您可以在工作台点击“同意”或“拒绝”</div>
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 若您同意对方提交的日期，则可耐心等待对方完成，完成之后会自动进入下一环节</div>
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 若对方未按时完成，则为了保护您的利益，平台会扣除对方违约金</div>
-
-                    <div style="display:flex; align-items: center; margin-bottom:20px">
-                        <span style="font-size: 14px; color:#909399; margin-right: 20px">对方预计完成日期为</span>
-                        {% if cooperation.predict_finish_date == '' %}
-                        <span><el-input placeholder="对方尚未指定" disabled suffix-icon="el-icon-date"></el-input></span>
-                        {% else %}
-                        <span><el-input placeholder="{{cooperation.predict_finish_date}}" disabled suffix-icon="el-icon-date"></el-input></span>
-                        {% endif %}
-                    </div>
-                    {% if cooperation.predict_finish_date_fix != '' %}
-                    <div style="display:flex; align-items: center;">
-                        <span style="font-size: 14px; color:#909399"><i class="el-icon-warning"></i> 对方申请修改预计完成日期为</span>
-                        <span style="margin-left: 20px; margin-right: 20px"><el-input placeholder="{{cooperation.predict_finish_date_fix}}" disabled suffix-icon="el-icon-date"></el-input></span>
-                        <el-button plain @click="fixSubmit(1, 'fix_finish_date')">同意</el-button>
-                        <el-button type="danger" @click="fixSubmit(0, 'fix_finish_date')">拒绝</el-button>
-                    </div>
+                    <div style="font-size:14px; color: #909399">您已支付押金，请等待对方完成押金支付</div>
                     {% endif %}
-                    {% if overdue %}
-                    <div style="font-size: 14px; color:rgb(203, 49, 49); margin-top:20px"><i class="el-icon-error"></i> 对方已逾期 {{overdue}} 天，平台将扣除对方违约金</div>
-                    {% endif %}
-                    {% endif %}
-                    <!--/第二步-->
                     {% elif cooperation.active == 2 %}
-                    <!--第三步-->
-                    {% if cooperation.follow.user == usr %}
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 请您主动与对方进行沟通，并选择一个7天内的日期作为验收日</div>
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 请您在验收日当天准时上线，并使用我们提供的远程桌面软件参与验收过程</div>
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 如果对方验收结果满意，您将会收到竞拍价的30%作为付款</div>
-                    
-                    <template>
-                        <div style="margin-bottom: 20px">
-                          <div style="font-size: 14px; color:#909399; margin-bottom: 20px;">选择验收日期</div>
-                          <el-date-picker v-model="acceptance_date" type="datetime" default-time="12:00:00" placeholder="选择日期"></el-date-picker>
-                        </div>
-                        <div style="display: flex; align-items: center;">
-                            <div v-if="acceptance_date === ''">
-                                <el-button type="primary" @click="acceptanceDateSubmit">提交日期</el-button>
-                            </div>
-                            <div v-else>
-                                <el-button type="primary" @click="acceptanceDateSubmit">提交修改日期</el-button>
-                            </div>
-                            {% if cooperation.acceptance_date_fix_state == 0 and cooperation.acceptance_date_fix != '' %}
-                            <el-divider direction="vertical"></el-divider>
-                            <span style="font-size: 14px; color:#909399;"><i class="el-icon-info"></i> 您之前提交的申请尚未被对方查看，请主动联系对方</span>
-                            {% elif cooperation.acceptance_date_fix_state == 1 %}
-                            <el-divider direction="vertical"></el-divider>
-                            <span style="font-size: 14px; color:rgb(49, 203, 113);"><i class="el-icon-success"></i> 您之前提交的申请已被对方同意</span>
-                            {% elif cooperation.acceptance_date_fix_state == 2 %}
-                            <el-divider direction="vertical"></el-divider>
-                            <span style="font-size: 14px; color:rgb(203, 49, 49);"><i class="el-icon-error"></i> 您之前提交的申请已被对方拒绝，请沟通后重新提交</span>
-                            {% endif %}
-                        </div>
-                        {% if acceptance_date_overdue %}
-                        <div style="font-size: 14px; color:rgb(203, 49, 49); margin-top: 20px;"><i class="el-icon-error"></i> 您已逾期 {{acceptance_date_overdue}} 天，平台将从押金中扣除违约金</div>
-                        {% endif %}
-                    </template>
-                    {% else %}
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 请您与对方协商验收日期，沟通完毕后等待对方提交验收日期</div>
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 对方提交后，您可以在工作台点击“同意”或“拒绝”</div>
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 请您在验收日当天准时上线，并使用我们提供的远程桌面软件参与验收过程</div>
-                    <div style="margin-bottom: 20px; font-size: 14px; color:#606266"><i class="el-icon-circle-check"></i> 若您对验收结果满意，则需要支付竞拍价的30%作为付款</div>
-
-                    
-                    <div style="display:flex; align-items: center; margin-bottom:20px">
-                        <span style="font-size: 14px; color:#909399; margin-right: 20px">验收日期为</span>
-                        {% if cooperation.acceptance_date == '' %}
-                        <span><el-input placeholder="尚未指定" disabled suffix-icon="el-icon-date"></el-input></span>
+                    <!--第3步-->
+                    <div style="display:flex; justify-content: center; align-items: center;">
+                        <el-button type="primary" @click="getPayLink" v-html="let_me_pay"></el-button>
+                        <el-button type="danger" @click="cancel_confirm_visible = true">取消合作</el-button>
+                    </div>
+                    {% elif cooperation.active == 3 %}
+                    <!--第4步-->
+                    <div style="display:flex; justify-content: center; align-items: center;">
+                        <el-button type="primary" @click="entryNextSubmit">已完成部署</el-button>
+                    </div>
+                    {% elif cooperation.active == 4 %}
+                    <!--第5步-->
+                    {% if cooperation.clientfeedback_set.all.count == 0 %}
+                    <div style="text-align: center;">
+                        {% if cooperation.server_cancel == True %}
+                        <div style="margin-bottom: 20px;"><span style="font-size: 14px; color:#909399">对方已取消合作，请完成评价</span></div>
+                        {% elif cooperation.client_cancel == True %}
+                        <div style="margin-bottom: 20px;"><span style="font-size: 14px; color:#909399">您已取消合作，请完成评价</span></div>
                         {% else %}
-                        <span><el-input placeholder="{{cooperation.acceptance_date}}" disabled suffix-icon="el-icon-date"></el-input></span>
+                        <div style="margin-bottom: 20px;"><span style="font-size: 14px; color:#909399">请完成评价</span></div>
                         {% endif %}
+                        <div style="margin-bottom: 20px;"><el-rate v-model="rate"></el-rate></div>
+                        <div style="margin-bottom: 20px;"><el-input type="textarea" placeholder="请输入评价" v-model="review" maxlength="100" show-word-limit></el-input></div>
                     </div>
-                    {% if cooperation.acceptance_date_fix != '' %}
-                    <div style="display:flex; align-items: center;">
-                        <span style="font-size: 14px; color:#909399"><i class="el-icon-warning"></i> 对方申请修改验收日期为</span>
-                        <span style="margin-left: 20px; margin-right: 20px"><el-input placeholder="{{cooperation.acceptance_date_fix}}" disabled suffix-icon="el-icon-date"></el-input></span>
-                        <el-button plain @click="fixSubmit(1, 'fix_acceptance_date')">同意</el-button>
-                        <el-button type="danger" @click="fixSubmit(0, 'fix_acceptance_date')">拒绝</el-button>
-                    </div>
-                    {% endif %}
-                    {% if acceptance_date_overdue %}
-                    <div style="font-size: 14px; color:rgb(203, 49, 49); margin-top:20px"><i class="el-icon-error"></i> 对方已逾期 {{acceptance_date_overdue}} 天，平台将扣除对方违约金</div>
+                    <div style="text-align: center;"><el-button type="primary" plain @click="submitRateAndReview"><span v-html="submit_feedback_client"></span></el-button></div>
+                    {% elif cooperation.client_cancel == False %}
+                    <el-result icon="success" title="感谢您的配合" sub-title="希望有机会与您再次合作"></el-result>
+                    {% elif cooperation.client_cancel == True and cooperation.client_deposit > 0 %}
+                    <el-result icon="warning" title="合作已取消" sub-title="由于您中途取消了合作，押金将不会被退还"></el-result>
+                    {% elif cooperation.client_cancel == True and cooperation.client_deposit == 0 %}
+                    <el-result icon="success" title="合作已取消" sub-title="感谢您的支持，我们将始终保护您的权益"></el-result>
                     {% endif %}
                     {% endif %}
-                    <!--/第三步-->
+                    {% endif %}
                     {% endif %}
                 </div>
                 <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin: 20px; padding: 20px; background-color: white;">
@@ -253,46 +302,66 @@
                         <span style="font-size: 16px; color:#409EFF;"><i class="el-icon-question"></i> Q&A</span>
                     </div>
                     <el-collapse>
+                        {% if cooperation.follow.user == usr %}
+
+                        <!--竞标者-->
                         {% if cooperation.active == 0 %}
-                        <!--第一步-->
-                        {% if cooperation.follow.user == usr %}
-                        <el-collapse-item title="是否可以多次提交需求文档？" name="1">
-                            <div>是的，可以多次提交需求文档，提交后将会覆盖旧的需求文档，用户只能看到最新的需求文档。</div>
+                        <!--第1步-->
+                        <el-collapse-item title="对方联系不上怎么办？" name="1">
+                            <div style="color:#606266; margin-left:20px">在这种情况下，建议您耐心等待几天。如果仍然无法联系到对方，您可以考虑进行<el-button type="text" @click="appeal_dialog_visible = true"><span style="font-size:13px">申诉</span></el-button>操作</div>
                         </el-collapse-item>
-                        <el-collapse-item title="如何进入下一步？" name="2">
-                            <div>用户验收你提交的需求文档后，才能进入下一步。如果用户对你撰写的需求文档不满意，那么你应该重新核对需求并撰写新的需求文档，直到用户满意为止。</div>
-                        </el-collapse-item>
-                        <el-collapse-item title="如何给需求文档添加层级结构？" name="3">
-                            <div>使用一个井号表示一级标题，如：# 一级标题</div>
-                            <div>使用两个井号表示二级标题，如：## 二级标题</div>
-                            <div>注意井号和标题正文之间有一个空格。</div>
-                        </el-collapse-item>
-                        {% else %}
-                        <el-collapse-item title="需求文档是对方撰写吗？" name="1">
-                            <div>是的，您需要配合沟通，让对方了解您的详细需求，并由对方撰写需求文档。</div>
-                        </el-collapse-item>
-                        <el-collapse-item title="可以不等对方撰写文档，直接进入下一环节吗？" name="2">
-                            <div>可以，但不建议，平台设置撰写需求文档环节，主要是保留依据，方便维护您的权益。</div>
-                        </el-collapse-item>
-                        <el-collapse-item title="如果对方迟迟不提交需求文档怎么办？" name="3">
-                            <div>这种情况下您可以通过聊天页面催促对方，或直接取消合作。</div>
-                        </el-collapse-item>
-                        {% endif %}
-                        <!--/第一步-->
                         {% elif cooperation.active == 1 %}
-                        <!--第二步-->
-                        {% if cooperation.follow.user == usr %}
-                        <el-collapse-item title="如何修改预计完成时间？" name="1">
-                            <div>首先您申请修改预计完成时间，申请完成后平台会自动通知对方，对方同意后方可直接生效。</div>
-                            <div>新的预计完成时间生效后，原来的预计完成时间将作废，不用于评估逾期行为。</div>
+                        <!--第2步-->
+                        <el-collapse-item title="对方联系不上怎么办？" name="1">
+                            <div style="color:#606266; margin-left:20px">在这种情况下，建议您耐心等待几天。如果仍然无法联系到对方，您可以考虑进行<el-button type="text" @click="appeal_dialog_visible = true"><span style="font-size:13px">申诉</span></el-button>操作</div>
                         </el-collapse-item>
-                        <el-collapse-item title="快逾期了仍没做完，是否可以先“进入下一环节”？" name="2">
-                            <div>不可以，因为进入下一环节之后，要选择未来7天中的某一天作为验收日。</div>
-                            <div>如果您在7天之内没有参与验收，平台会认为您有违约现象，并自动从押金中扣除部分违约金。</div>
+                        {% elif cooperation.active == 2 %}
+                        <!--第3步-->
+                        <el-collapse-item title="对方联系不上怎么办？" name="1">
+                            <div style="color:#606266; margin-left:20px">在这种情况下，建议您耐心等待几天。如果仍然无法联系到对方，您可以考虑进行<el-button type="text" @click="appeal_dialog_visible = true"><span style="font-size:13px">申诉</span></el-button>操作</div>
                         </el-collapse-item>
-                        {% else %}
+                        {% elif cooperation.active == 3 %}
+                        <!--第4步-->
+                        <el-collapse-item title="对方联系不上怎么办？" name="1">
+                            <div style="color:#606266; margin-left:20px">在这种情况下，建议您耐心等待几天。如果仍然无法联系到对方，您可以考虑进行<el-button type="text" @click="appeal_dialog_visible = true"><span style="font-size:13px">申诉</span></el-button>操作</div>
+                        </el-collapse-item>
+                        {% elif cooperation.active == 4 %}
+                        <!--第5步-->
+                        <el-collapse-item title="对方联系不上怎么办？" name="1">
+                            <div style="color:#606266; margin-left:20px">在这种情况下，建议您耐心等待几天。如果仍然无法联系到对方，您可以考虑进行<el-button type="text" @click="appeal_dialog_visible = true"><span style="font-size:13px">申诉</span></el-button>操作</div>
+                        </el-collapse-item>
                         {% endif %}
-                        <!--/第二步-->
+
+                        {% else %}
+
+                        <!--需求方-->
+                        {% if cooperation.active == 0 %}
+                        <!--第1步-->
+                        <el-collapse-item title="对方联系不上怎么办？" name="1">
+                            <div style="color:#606266; margin-left:20px">在这种情况下，建议您耐心等待几天。如果仍然无法联系到对方，您可以考虑进行<el-button type="text" @click="appeal_dialog_visible = true"><span style="font-size:13px">申诉</span></el-button>操作</div>
+                        </el-collapse-item>
+                        {% elif cooperation.active == 1 %}
+                        <!--第2步-->
+                        <el-collapse-item title="对方联系不上怎么办？" name="1">
+                            <div style="color:#606266; margin-left:20px">在这种情况下，建议您耐心等待几天。如果仍然无法联系到对方，您可以考虑进行<el-button type="text" @click="appeal_dialog_visible = true"><span style="font-size:13px">申诉</span></el-button>操作</div>
+                        </el-collapse-item>
+                        {% elif cooperation.active == 2 %}
+                        <!--第3步-->
+                        <el-collapse-item title="对方联系不上怎么办？" name="1">
+                            <div style="color:#606266; margin-left:20px">在这种情况下，建议您耐心等待几天。如果仍然无法联系到对方，您可以考虑进行<el-button type="text" @click="appeal_dialog_visible = true"><span style="font-size:13px">申诉</span></el-button>操作</div>
+                        </el-collapse-item>
+                        {% elif cooperation.active == 3 %}
+                        <!--第4步-->
+                        <el-collapse-item title="对方联系不上怎么办？" name="1">
+                            <div style="color:#606266; margin-left:20px">在这种情况下，建议您耐心等待几天。如果仍然无法联系到对方，您可以考虑进行<el-button type="text" @click="appeal_dialog_visible = true"><span style="font-size:13px">申诉</span></el-button>操作</div>
+                        </el-collapse-item>
+                        {% elif cooperation.active == 4 %}
+                        <!--第5步-->
+                        <el-collapse-item title="对方联系不上怎么办？" name="1">
+                            <div style="color:#606266; margin-left:20px">在这种情况下，建议您耐心等待几天。如果仍然无法联系到对方，您可以考虑进行<el-button type="text" @click="appeal_dialog_visible = true"><span style="font-size:13px">申诉</span></el-button>操作</div>
+                        </el-collapse-item>
+                        {% endif %}
+
                         {% endif %}
                     </el-collapse>
                 </div>
@@ -352,6 +421,10 @@
     <script src="https://unpkg.com/element-ui/lib/index.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script>
+        const username = "{{usr.name}}"
+        const client_name = "{{cooperation.follow.request.publisher.name}}"
+        const server_name = "{{cooperation.follow.user.name}}"
+
         new Vue({
 
             el: '#app',
@@ -365,12 +438,50 @@
                     html_document: '',
                     finish_date: "{{cooperation.predict_finish_date}}",
                     step2_confirm_visible: false,
+                    step3_confirm_visible: false,
                     acceptance_date: "{{cooperation.acceptance_date}}",
 
                     // 关于聊天
                     chat_text: '',
                     chat_msgs: [],
                     online: false,
+
+                    // 关于支付
+                    pay_method: 'alipay',
+                    pay_immediate_html: '立即支付',
+
+                    // 取消合作
+                    cancel_confirm_visible: false,
+
+                    // 关于评价
+                    rate: 0,
+                    review:'',
+                    submit_feedback_server: '提交评价',
+                    submit_feedback_client: '提交评价',
+
+                    // 申诉页面
+                    appeal_dialog_visible: false,
+                    appeal_form_model: {
+                        reason: '',
+                        mobile: '',
+                        result: '',
+                    },
+                    appeal_form_rules: {
+                        mobile: [
+                            { required: true, message: "请输入电话号码", trigger: "blur" },
+                            { min: 11, max: 11, message: "电话号码必须是11位", trigger: "change" }
+                        ],
+                        reason: [
+                            { required: true, message: "请输入申诉原因", trigger: "blur" },
+                        ],
+                        result: [
+                            { required: true, message: "请输入期望申诉结果", trigger: "blur" },
+                        ],
+                    },
+
+                    // 关于支付
+                    pay_url: '',
+                    let_me_pay: '我要付款'
                 }
             },
 
@@ -576,6 +687,147 @@
                             else {
                                 this.$message.success('已拒绝对方的修改申请')
                             }
+                            location.reload()
+                        }
+                    })
+                },
+
+                getDepositPayLink: function(pay_method) {
+                    const data = {
+                        pay_method: pay_method,
+                        cooperation_id: "{{cooperation.id}}",
+                        username: "{{usr.name}}"
+                    }
+                    const headers = {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                    this.pay_immediate_html = "立即支付 <i class='el-icon-loading'></i>"
+                    axios.post('/help/get/deposit_pay_link/', data, { headers })
+                    .then(response => {
+                        this.pay_immediate_html = "立即支付"
+                        if (response.data.message) {
+                            this.$message.error(response.data.message)
+                        }
+                        else if (response.data.success) {
+                            let url = response.data.url
+                            window.location.assign(url)
+                        }
+                    })
+                },
+
+                getPayLink: function() {
+                    const data = {
+                        cooperation_id: "{{cooperation.id}}",
+                        username: "{{usr.name}}"
+                    }
+                    const headers = {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                    this.let_me_pay = "我要付款 <i class='el-icon-loading'></i>"
+
+                    axios.post('/help/get/pay_link/', data, { headers })
+                    .then(response => {
+                        this.let_me_pay = "我要付款"
+                        if (response.data.message) {
+                            this.$message.error(response.data.message)
+                        }
+                        else if (response.data.success) {
+                            let url = response.data.url
+                            window.location.assign(url)
+                        }
+                    })
+                },
+
+                submitCancelCooperation: function() {
+                    const data = {
+                        cooperation_id: "{{cooperation.id}}",
+                        username: "{{usr.name}}"
+                    }
+                    const headers = {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                    axios.post('/help/submit/cancel_cooperation/', data, { headers })
+                    .then(response => {
+                        if (response.data.message) {
+                            this.$message.error(response.data.message)
+                        }
+                        else if (response.data.success) {
+                            this.$message.success('成功取消合作')
+                            location.reload()
+                        }
+                    })
+                },
+
+                submitRateAndReview: function() {
+                    const data = {
+                        cooperation_id: "{{cooperation.id}}",
+                        username: "{{usr.name}}",
+                        rate: this.rate,
+                        review: this.review,
+                    }
+                    const headers = {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+
+                    this.submit_feedback_server = "提交评价 <i class='el-icon-loading'></i>"
+                    this.submit_feedback_client = "提交评价 <i class='el-icon-loading'></i>"
+
+                    axios.post('/help/submit/rate_and_review/', data, { headers })
+                    .then(response => {
+                        this.submit_feedback_server = "提交评价"
+                        this.submit_feedback_client = "提交评价"
+                        if (response.data.message) {
+                            this.$message.error(response.data.message)
+                        }
+                        else if (response.data.success) {
+                            this.$message.success('评论成功')
+                            location.reload()
+                        }
+                    })
+                },
+
+                submitAppeal: function() {
+                    this.$refs.appeal_form.validate(valid => {
+                        if (valid) {
+                            const data = {
+                                cooperation_id: "{{cooperation.id}}",
+                                username: "{{usr.name}}",
+                                reason: this.appeal_form_model.reason,
+                                mobile: this.appeal_form_model.mobile,
+                                result: this.appeal_form_model.result,
+                            }
+                            const headers = {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            }
+                            axios.post('/help/submit/appeal/', data, { headers })
+                            .then(response => {
+                                if (response.data.message) {
+                                    this.$message.error(response.data.message)
+                                }
+                                else if (response.data.success) {
+                                    this.$message.success('申诉成功')
+                                    location.reload()
+                                }
+                            })
+                        }
+                    })
+                },
+
+                cancelAppeal: function() {
+                    const data = {
+                        cooperation_id: "{{cooperation.id}}",
+                        username: "{{usr.name}}",
+                    }
+                    const headers = {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    }
+                    axios.post('/help/remove/appeal/', data, { headers })
+                    .then(response => {
+                        if (response.data.message) {
+                            this.$message.error(response.data.message)
+                        }
+                        else if (response.data.success) {
+                            this.$message.success('已取消申诉')
                             location.reload()
                         }
                     })

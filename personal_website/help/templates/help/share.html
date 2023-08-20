@@ -95,20 +95,20 @@
 const config = {
     bundlePolicy: "max-bundle",
     rtcpMuxPolicy: "require",
-    iceTransportPolicy: "relay",
+    iceTransportPolicy: "all",
     iceServers: [
         {
-            urls: "turn:192.168.17.128:3478?transport=udp",
+            urls: "turn:192.168.17.130:3478?transport=udp",
             username: "lwh",
             credential: "137020300"
         },
         {
-            urls: "turn:192.168.17.128:3478?transport=tcp",
+            urls: "turn:192.168.17.130:3478?transport=tcp",
             username: "lwh",
             credential: "137020300"
         },
         {
-            urls: "stun:192.168.17.128:3478"
+            urls: "stun:192.168.17.130:3478"
         }
     ]
 };

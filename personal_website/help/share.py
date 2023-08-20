@@ -2,9 +2,7 @@ import asyncio
 import websockets
 import json
 import threading
-import queue
-
-
+from django.conf import settings
 from django.shortcuts import render
 from .models import User, Cooperation
 
@@ -121,7 +119,8 @@ async def handle_message(websocket, path):
 
 
 async def main():
-    async with websockets.serve(handle_message, "localhost", 8002):
+    domain = settings.SHARE_SERVER_SITE.split(':')
+    async with websockets.serve(handle_message, *domain):
         await asyncio.Future()  # 保持服务器运行
 
 

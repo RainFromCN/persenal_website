@@ -3,7 +3,6 @@ from django.urls import reverse
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
-import pytz
 
 from markdown import markdown
 
@@ -15,10 +14,29 @@ from .models import (
     Procedure,
     ProcedureStep,
     Cooperation,
+    ServerFeedback,
+    ClientFeedback,
+    CooperationAppealing,
+    CooperationPayment,
 )
+
+from . import steps, buy
+from .mutex import _get_cooperation_lock
 
 
 current_field = 0  # 用来记录当前的field
+
+
+def _check_login(request):
+    if 'username' in request.session:
+        return True
+    return False
+
+
+def _get_login(request):
+    user = User.objects.get(name=request.session['username'])
+    user.save()
+    return user
 
 
 # Create your views here.
@@ -52,9 +70,9 @@ def index(request):
             rqst.timedelta = "刚刚发布"
     
     # 查看用户登录状态
-    if 'username' in request.session:
+    if _check_login(request):
         context['username'] = request.session['username']
-        context['usr'] = User.objects.filter(name=context['username']).first()
+        context['usr'] = _get_login(request)
 
         # 加入我发布的需求和竞标
         my_requests = Request.objects.filter(publisher=context['usr']).reverse()
@@ -98,41 +116,7 @@ def signup(request):
             request.session['username'] = username
 
             # 为用户创建默认流程
-            procedure = Procedure(name='工程外包流程（平台提供）', owner=user)
-            procedure.save()
-            steps = [
-                ProcedureStep(procedure=procedure, title='确认需求', discription='双方确认详细需求清单，并提交给平台', pay=0),
-                ProcedureStep(procedure=procedure, title='服务商完成初稿', discription='快速实现核心功能', pay=0),
-                ProcedureStep(procedure=procedure, title='初稿验收合格', discription='若验收满意需支付30%费用，不满意则无需支付并终止服务', pay=30),
-                ProcedureStep(procedure=procedure, title='服务商完成终稿', discription='实现全部功能', pay=0),
-                ProcedureStep(procedure=procedure, title='终稿验收合格', discription='验收满意需再支付40%的费用', pay=70),
-            ]
-            for step in steps:
-                step.save()
-            
-            procedure = Procedure(name='作业指导流程（平台提供）', owner=user)
-            procedure.save()
-            steps = [
-                ProcedureStep(procedure=procedure, title='确认需求', discription='双方确认详细需求清单，并提交给平台', pay=0),
-                ProcedureStep(procedure=procedure, title='服务商完成作业', discription='实现作业要求的各项功能', pay=0),
-                ProcedureStep(procedure=procedure, title='作业验收合格', discription='查看完成的作业是否符合要求，不满意则无需支付并终止服务', pay=30),
-                ProcedureStep(procedure=procedure, title='服务商讲解', discription='针对作业实现细节进行辅导讲解', pay=0),
-                ProcedureStep(procedure=procedure, title='讲解完毕', discription='讲解满意再支付剩余70%的费用', pay=70),
-            ]
-            for step in steps:
-                step.save()
-
-            procedure = Procedure(name='科研指导流程（平台提供）', owner=user)
-            procedure.save()
-            steps = [
-                ProcedureStep(procedure=procedure, title='确认需求', discription='双方确认详细需求清单，并提交给平台', pay=0),
-                ProcedureStep(procedure=procedure, title='服务商发掘创新点并进行实验', discription='阅读大量文献，寻找论文创新点，并在平台实时更新研究进度', pay=0),
-                ProcedureStep(procedure=procedure, title='实验结果验收', discription='若验收满意需要支付30%费用，不满意则无需支付并终止服务', pay=30),
-                ProcedureStep(procedure=procedure, title='服务商讲解实验细节', discription='针对实验细节进行辅导讲解', pay=0),
-                ProcedureStep(procedure=procedure, title='讲解完毕', discription='讲解满意再支付剩余70%的费用', pay=70),
-            ]
-            for step in steps:
-                step.save()
+            steps.generate_default_procedure(user)
 
             return JsonResponse({'success': True})
         
@@ -151,6 +135,7 @@ def login(request):
             return JsonResponse({'message': '密码错误'})
         else:
             request.session['username'] = username
+            user.save() # 触发auto_now字段，更新用户登录时间
             return JsonResponse({'success': True})
 
 
@@ -163,12 +148,17 @@ def exit(request):
 
 @csrf_exempt
 def request_publish(request):
-    if 'username' not in request.session:
+    if not _check_login(request):
         return JsonResponse({'message': '请先登录'})
-    user = User.objects.filter(name=request.session['username']).first()
+    user = _get_login(request)
 
+    # 需求发布格式检查
     if request.POST.get('title') == '' or request.POST.get('detail') == '' or request.POST.get('field') == '' or request.POST.get('type') == '':
         return JsonResponse({'message', '请按照要求的格式填写'})
+
+    # 查看该用户是否发布标题相同的需求
+    if Request.objects.filter(publisher=user, title=request.POST.get('title')).count() > 0:
+        return JsonResponse({'message': '请勿重复发布需求'})
 
     # 创建新的需求信息
     rqst = Request(
@@ -187,10 +177,27 @@ def request_publish(request):
     return JsonResponse({'success': True})
 
 
+def append_rate_and_review(follow: RequestFollows):
+    if (query_set := follow.user.clientfeedback_set.all()).count() > 0:
+        score = 0
+        for feedback in query_set:
+            score += feedback.rate * 20
+        follow.rate = f"{score / query_set.count():.2f}"
+        follow.feedbacks = query_set
+    else:
+        follow.rate = "-"
+        follow.reviews = []
+
+
 @csrf_exempt
 def detail(request, request_id):
     rqst = Request.objects.filter(id=request_id).first()
     follows = RequestFollows.objects.filter(request=rqst).order_by('state').reverse()
+    
+    # 给所有的竞标者计算竞方好评率
+    for follow in follows:
+        append_rate_and_review(follow)
+
     context = {
         'follows': follows,
         'rqst': rqst,
@@ -211,18 +218,23 @@ def detail(request, request_id):
     else:
         rqst.timedelta = "刚刚发布"
 
-    if 'username' in request.session:
+    if _check_login(request):
         context['username'] = request.session['username']
-        context['usr'] = User.objects.filter(name=context['username']).first()
+        context['usr'] = _get_login(request)
+
         # 加入我发布的需求和竞标
         my_requests = Request.objects.filter(publisher=context['usr']).reverse()
         my_follows = RequestFollows.objects.filter(user=context['usr']).reverse()
+
+        # 将竞标者和需求加入上下文
         context.update({
             'my_requests': my_requests,
             'my_follows': my_follows,
         })
+
         # 加入这个用户的所有流程
         context['procedures'] = Procedure.objects.filter(owner=context['usr'])
+
         # 加入合作选项
         if context['follows'].count() > 0 and context['follows'].first().state == 1:
             context['cooperation'] = Cooperation.objects.get(follow=context['follows'].first())
@@ -232,17 +244,22 @@ def detail(request, request_id):
 
 @csrf_exempt
 def bidding(request, request_id):
-    if 'username' not in request.session:
+    if not _check_login(request):
         return JsonResponse({'message': '请先登录'})
-    user = User.objects.filter(name=request.session['username']).first()
+    user = _get_login(request)
     rqst = Request.objects.filter(id=request_id).first()
 
+    # 格式检查
     if user.tel == '' or user.introduction == '':
         return JsonResponse({'message': '请先完善个人资料'})
     
     # 从前端获取数据
     bid_price = int(request.POST.get('bid'))
     procedure_id = int(request.POST.get('procedure_id'))
+
+    # 检查该用户是否已经竞标
+    if RequestFollows.objects.filter(request=rqst, user=user).count() > 0:
+        return JsonResponse({'message': '请勿重复竞标'})
 
     # 创建投标信息
     follow = RequestFollows(request=rqst, user=user, bid_price=bid_price, procedure_id=procedure_id)
@@ -263,9 +280,9 @@ def bidding(request, request_id):
 
 @csrf_exempt
 def edit_information(request):
-    if 'username' not in request.session:
+    if not _check_login(request):
         return JsonResponse({'message': '请先登录'})
-    user = User.objects.filter(name=request.session['username']).first()
+    user = _get_login(request)
     
     tel = request.POST.get('tel')
     intro = request.POST.get('introduction')
@@ -283,68 +300,108 @@ def make_cooperation(request):
     # 获取follow
     follow_id = request.POST.get('id')
     follow = RequestFollows.objects.filter(id=follow_id).first()
-    follow.state = 1
-    follow.save()
+
+    # 检查follow是否已经中标
+    if follow.state == 1:
+        return JsonResponse({'message': '您已中标，请勿重复操作'})
 
     # 更改状态
+    follow.state = 1
     follow.request.state = 1
     follow.user.win_times += 1
+    cooperation = Cooperation(follow=follow)
+
+    # xie 写数据库
     follow.request.save()
     follow.user.save()
-
-    # 创建Cooperation
-    cooperation = Cooperation(follow=follow)
+    follow.save()
     cooperation.save()
 
     return JsonResponse({"success": True})
 
-
-@csrf_exempt
-def create_procedures(request):
-    if 'username' not in request.session:
-        return JsonResponse({'message': '请先登录后再进行操作'})
-    
-    # 创建一个流程
-    procedure = Procedure(owner=User.objects.filter(name=request.session['username']).first())
-
-    # 给这个流程内添加步骤
-    sum_pay = 0
-    step_list = []
-    for title, discription, pay in request.POST.get('procedure_steps'):
-        step_list.append(ProcedureStep(procedure=procedure, title=title, discription=discription, pay=int(pay)))
-        sum_pay += int(pay)
-
-    # 检查支付金额比例是否合法
-    if sum_pay != 100:
-        return JsonResponse({'message': '所有步骤支付比例相加须为100%'})
-    
-    # 创建数据库条目
-    procedure.save()
-    for step in step_list:
-        step.save()
-
-    return JsonResponse({'success': True})
-
-
 @csrf_exempt
 def cooperation(request, cooperation_id):
-    context = {
-        'cooperation': Cooperation.objects.get(id=cooperation_id)
-    }
-    if (finish_date := context['cooperation'].predict_finish_date) != '':
-        finish_date = timezone.datetime(*[int(x) for x in finish_date.split('-')])
-        if timezone.datetime.today() > finish_date:
-            days = (timezone.datetime.today() - finish_date).days
-            context['overdue'] = days
-    if (acceptance_date := context['cooperation'].acceptance_date) != '':
-        date_parts, _ = acceptance_date.split(' ')
-        acceptance_date = timezone.datetime(*[int(x) for x in date_parts.split('-')])
-        if timezone.datetime.today() > acceptance_date:
-            days = (timezone.datetime.today() - acceptance_date).days
-            context['acceptance_date_overdue'] = days
-    if 'username' in request.session:
-        context['usr'] = User.objects.get(name=request.session['username'])
-    return render(request, 'help/cooperation.html', context)
+    # 获取锁
+    try:
+        _get_cooperation_lock(cooperation_id).acquire()
+        # 将合作加入上下文
+        coop = Cooperation.objects.get(id=cooperation_id)
+        context = {'cooperation': coop}
+
+            # 将用户加入上下文
+        if _check_login(request):
+            context['usr'] = _get_login(request)
+
+        # 将子步骤加入上下文
+        active_step = coop.active
+        substeps = coop.follow.procedure.procedurestep_set.all()[active_step].proceduresubstep_set.all()
+        context['substeps'] = substeps
+
+        # 查看是否已经支付押金
+        if coop.active == 1:
+            client = coop.follow.request.publisher
+            server = coop.follow.user
+            if float(coop.client_deposit) == 0:
+                if res := buy.deposit_query_alipay(coop, client):
+                    total_amount, buyer_user_id = res
+                    coop.client_deposit = f"{total_amount}"
+                    coop.client_alipay_id = buyer_user_id
+                    coop.save()
+            if float(coop.server_deposit) == 0:
+                if res := buy.deposit_query_alipay(coop, server):
+                    total_amount, buyer_user_id = res
+                    coop.server_deposit = f"{total_amount}"
+                    coop.server_alipay_id = buyer_user_id
+                    coop.save()
+            if float(coop.client_deposit) > 0 and float(coop.server_deposit) > 0:
+                coop.active += 1
+                coop.save()
+
+        # 查看是否已经支付步骤2的金钱
+        if coop.active == 2:
+            if res := buy.payment_query_alipay(coop, coop.active):
+                amount, datetime = res
+                CooperationPayment(coop=coop, step=coop.active, amount=amount, datetime=datetime).save()
+                coop.active += 1
+                coop.save()
+    finally:
+        _get_cooperation_lock(cooperation_id).release()
+
+
+    return render(request, 'help/cooperation.html', context)   
+
+
+@csrf_exempt
+def submit_cancel_cooperation(request):
+    cid = int(request.POST.get('cooperation_id'))
+    username = request.POST.get('username')
+
+    try:
+        _get_cooperation_lock(cid).acquire()
+        # 从数据库中获取记录
+        coop = Cooperation.objects.get(id=cid)
+        user = User.objects.get(name=username)
+
+        # 取消合作
+        if coop.follow.user == user:
+            if coop.server_cancel == False:
+                coop.server_cancel = True
+                coop.active = 4
+                coop.save()
+            else:
+                return JsonResponse({'message': '请勿重复取消合作'})
+        elif coop.follow.request.publisher == user:
+            if coop.client_cancel == False:
+                coop.client_cancel = True
+                coop.active = 4
+                coop.save()
+            else:
+                return JsonResponse({'message': '请勿重复取消合作'})
+        
+        # 返回成功信息
+        return JsonResponse({'success': True})
+    finally:
+        _get_cooperation_lock(cid).release()
 
 
 def _convert_document(document: str):
@@ -367,11 +424,14 @@ def submit_request_document(request):
     document = request.POST.get('request_document')
     cooperation_id = request.POST.get('cooperation_id')
 
+    if '`' in document:
+        return JsonResponse({'message': '文档中不能含有符号“`”'})
+
     # 修改合作的表项
     cooperation = Cooperation.objects.get(id=int(cooperation_id))
     cooperation.request_document = document
     cooperation.request_document_update = True
-    cooperation.request_document_update_datetime = timezone.now()
+    cooperation.request_document_update_datetime = timezone.now() + timezone.timedelta(hours=8)
     cooperation.save()
 
     return JsonResponse({'success': True})
@@ -393,96 +453,236 @@ def entry_next_step(request):
 
 
 @csrf_exempt
-def submit_finish_date(request):
+def submit_rate_and_review(request):
+    username = request.POST.get('username')
+    coop_id = int(request.POST.get('cooperation_id'))
+    rate = float(request.POST.get('rate'))
+    review = request.POST.get('review')
 
-    # 从前端获取数据
-    finish_date = request.POST.get('finish_date')[:10]
-    cooperation_id = request.POST.get('cooperation_id')
-    date_parts = [int(x) for x in finish_date.split('-')]
-    date = timezone.datetime(*date_parts) + timezone.timedelta(days=1)
-    if timezone.datetime.today() > date:
-        return JsonResponse({'message': '预计完成日期应该在今天之后'})
-    
-    # 响应字典
-    response = {'success': True}
+    try:
+        _get_cooperation_lock(coop_id).acquire()
+        user = User.objects.get(name=username)
+        coop = Cooperation.objects.get(id=coop_id)
 
-    # 设置相应字段
-    cooperation = Cooperation.objects.get(id=int(cooperation_id))
-    response['fix'] = True
-    cooperation.predict_finish_date_fix = (f"{date}")[:10]
-    cooperation.predict_finish_date_fix_state = 0
-
-    # 保存日期
-    cooperation.save()
-
-    return JsonResponse(response)
-    
-
-@csrf_exempt
-def submit_fix_finish_date(request):
-    # 从前端获取数据
-    agree = int(request.POST.get('agree'))
-    cooperation_id = request.POST.get('cooperation_id')
-
-    # 设置相应字段
-    cooperation = Cooperation.objects.get(id=int(cooperation_id))
-    if agree == 1:
-        cooperation.predict_finish_date = cooperation.predict_finish_date_fix
-        cooperation.predict_finish_date_fix_state = 1
-    elif agree == 0:
-        cooperation.predict_finish_date_fix_state = 2
-    cooperation.predict_finish_date_fix = ''
-    cooperation.save()
-
-    return JsonResponse({'success': True})
-
-
-@csrf_exempt
-def submit_acceptance_date(request):
-
-    # 从前端获取数据
-    acceptance_date = request.POST.get('acceptance_date')
-    cooperation_id = request.POST.get('cooperation_id')
-    date_parts = [int(x) for x in acceptance_date[:10].split('-')]
-    time_parts = [int(x) for x in acceptance_date[11:19].split(':')]
-
-    # 转换为上海时区
-    date = timezone.datetime(*date_parts, *time_parts) + timezone.timedelta(hours=8)
-
-    if timezone.datetime.today() > date:
-        return JsonResponse({'message': '验收日期应该在今天之后'})
-    elif date > timezone.datetime.today() + timezone.timedelta(days=7):
-        return JsonResponse({'message': '验收日期必须在未来七天之内'})
+        # 检查评分和评价是否合法
+        if rate == 0:
+            return JsonResponse({'message': '请给对方打分'})
+        elif rate < 0 or rate > 5:
+            return JsonResponse({'message': '分数应该在1颗星到5颗星之间'})
+        elif len(review) < 20:
+            return JsonResponse({'message': '评论应不少于20个字'})
         
-    # 响应字典
-    response = {'success': True}
+        # 查看角色
+        if user == coop.follow.user:
+            # 竞争者
+            total_amount = f"{coop.server_deposit}"
+            cancel = coop.server_cancel
+            role = 'server'
+        elif user == coop.follow.request.publisher:
+            # 需求方
+            total_amount = f"{coop.client_deposit}"
+            cancel = coop.client_cancel
+            role = 'client'
+        else:
+            return JsonResponse({"message": "系统出错，请关闭所有网站并重新登陆后再试"})
 
-    # 设置相应字段
-    cooperation = Cooperation.objects.get(id=int(cooperation_id))
-    response['fix'] = True
-    cooperation.acceptance_date_fix = (f"{date}")
-    cooperation.acceptance_date_fix_state = 0
+        # 系统退还押金
+        out_trade_no = f"{username}.cooperation.{coop_id}.deposit"
+        if cancel == False and float(total_amount) > 0:
+            try:
+                # 使用支付宝API退还押金
+                buy.ALIPAY.api_alipay_trade_refund(total_amount, out_trade_no)
+                if role == 'client': 
+                    coop.client_deposit = '0'
+                elif role == 'server':
+                    coop.server_deposit = '0'            
+            except Exception:
+                return JsonResponse({'message': '系统繁忙，请稍后再试'})
+        
+        # 转换为上海时区之后，取日期
+        date = (timezone.now() + timezone.timedelta(hours=8)).date()
 
-    # 保存日期
-    cooperation.save()
+        # 将评论加入数据库
+        if role == 'client':
+            ClientFeedback(target=coop.follow.user, coop=coop, rate=rate, review=review, date=date).save()
+        elif role == 'server':
+            ServerFeedback(target=coop.follow.request.publisher, coop=coop, rate=rate, review=review, date=date).save()
+        coop.save()
 
-    return JsonResponse(response)
-    
+        # 返回成功
+        return JsonResponse({'success': True})
+    finally:
+        _get_cooperation_lock(coop_id).release()
+
 
 @csrf_exempt
-def submit_fix_acceptance_date(request):
-    # 从前端获取数据
-    agree = int(request.POST.get('agree'))
-    cooperation_id = request.POST.get('cooperation_id')
+def submit_appeal(request):
+    coop_id = request.POST.get('cooperation_id')
+    username = request.POST.get('username')
+    mobile = request.POST.get('mobile')
+    reason = request.POST.get('reason')
+    result = request.POST.get('result')
 
-    # 设置相应字段
-    cooperation = Cooperation.objects.get(id=int(cooperation_id))
-    if agree == 1:
-        cooperation.acceptance_date = cooperation.acceptance_date_fix
-        cooperation.acceptance_date_fix_state = 1
-    elif agree == 0:
-        cooperation.acceptance_date_fix_state = 2
-    cooperation.acceptance_date_fix = ''
-    cooperation.save()
+    try:
+        _get_cooperation_lock(coop_id).acquire()
+
+        # 从数据库中获取数据
+        user = User.objects.get(name=username)
+        coop = Cooperation.objects.get(id=coop_id)
+
+        # 检查是否已经申诉
+        if CooperationAppealing.objects.filter(coop=coop).count() > 0:
+            return JsonResponse({'message': '请勿重复申诉'})
+
+        # 创建合作申诉对象并保存
+        coop.is_appeal = True
+        appeal = CooperationAppealing(coop=coop, initiator=user, mobile=mobile,
+                                    expect_result=result, reason=reason)
+        coop.save()
+        appeal.save()
+
+        # 申诉成功，返回
+        return JsonResponse({'success': True})
+    finally:
+        _get_cooperation_lock(coop_id).release()
+
+
+@csrf_exempt
+def remove_appeal(request):
+    coop_id = request.POST.get('cooperation_id')
+    username = request.POST.get('username')
+
+    # 从数据库中获取数据
+    user = User.objects.get(name=username)
+    coop = Cooperation.objects.get(id=coop_id)
+
+    # 检查是否已经申诉
+    if CooperationAppealing.objects.filter(coop=coop, initiator=user).count() == 0:
+        return JsonResponse({'message': '申诉不存在'})
+    
+    # 检查合作的is_appeal字段
+    if coop.is_appeal == False:
+        return JsonResponse({'message': "申诉不存在"})
+    
+    # 删除
+    appeal = CooperationAppealing.objects.filter(coop=coop, initiator=user).first()
+    appeal.delete()
+    coop.is_appeal = False
+    coop.save()
+
+    return JsonResponse({"success": True})
+
+
+@csrf_exempt
+def submit_appeal_result(request):
+    coop_id = int(request.POST.get('coop_id'))
+    result = request.POST.get('result')
+    coop = Cooperation.objects.get(id=coop_id)
+
+    # 检查数据
+    if (not isinstance(result, str)) or len(result) < 20:
+        return JsonResponse({'message': '申诉结果应大于20字'})
+
+    # 从数据库找到申诉对象
+    appeal = coop.cooperationappealing_set.all().first()
+    appeal.result = result
+    appeal.is_finished = True
+    appeal.save()
 
     return JsonResponse({'success': True})
+
+
+# @csrf_exempt
+# def submit_finish_date(request):
+
+#     # 从前端获取数据
+#     finish_date = request.POST.get('finish_date')[:10]
+#     cooperation_id = request.POST.get('cooperation_id')
+#     date_parts = [int(x) for x in finish_date.split('-')]
+#     date = timezone.datetime(*date_parts) + timezone.timedelta(days=1)
+#     if timezone.datetime.today() > date:
+#         return JsonResponse({'message': '预计完成日期应该在今天之后'})
+    
+#     # 响应字典
+#     response = {'success': True}
+
+#     # 设置相应字段
+#     cooperation = Cooperation.objects.get(id=int(cooperation_id))
+#     response['fix'] = True
+#     cooperation.predict_finish_date_fix = (f"{date}")[:10]
+#     cooperation.predict_finish_date_fix_state = 0
+
+#     # 保存日期
+#     cooperation.save()
+
+#     return JsonResponse(response)
+    
+
+# @csrf_exempt
+# def submit_fix_finish_date(request):
+#     # 从前端获取数据
+#     agree = int(request.POST.get('agree'))
+#     cooperation_id = request.POST.get('cooperation_id')
+
+#     # 设置相应字段
+#     cooperation = Cooperation.objects.get(id=int(cooperation_id))
+#     if agree == 1:
+#         cooperation.predict_finish_date = cooperation.predict_finish_date_fix
+#         cooperation.predict_finish_date_fix_state = 1
+#     elif agree == 0:
+#         cooperation.predict_finish_date_fix_state = 2
+#     cooperation.predict_finish_date_fix = ''
+#     cooperation.save()
+
+#     return JsonResponse({'success': True})
+
+
+# @csrf_exempt
+# def submit_acceptance_date(request):
+
+#     # 从前端获取数据
+#     acceptance_date = request.POST.get('acceptance_date')
+#     cooperation_id = request.POST.get('cooperation_id')
+#     date_parts = [int(x) for x in acceptance_date[:10].split('-')]
+#     time_parts = [int(x) for x in acceptance_date[11:19].split(':')]
+
+#     # 转换为上海时区
+#     date = timezone.datetime(*date_parts, *time_parts) + timezone.timedelta(hours=8)
+
+#     if timezone.datetime.today() > date:
+#         return JsonResponse({'message': '验收日期应该在今天之后'})
+#     elif date > timezone.datetime.today() + timezone.timedelta(days=7):
+#         return JsonResponse({'message': '验收日期必须在未来七天之内'})
+        
+#     # 响应字典
+#     response = {'success': True}
+
+#     # 设置相应字段
+#     cooperation = Cooperation.objects.get(id=int(cooperation_id))
+#     response['fix'] = True
+#     cooperation.acceptance_date_fix = (f"{date}")
+#     cooperation.acceptance_date_fix_state = 0
+
+#     # 保存日期
+#     cooperation.save()
+
+#     return JsonResponse(response)
+    
+
+# @csrf_exempt
+# def submit_fix_acceptance_date(request):
+#     # 从前端获取数据
+#     agree = int(request.POST.get('agree'))
+#     cooperation_id = request.POST.get('cooperation_id')
+
+#     # 设置相应字段
+#     cooperation = Cooperation.objects.get(id=int(cooperation_id))
+#     if agree == 1:
+#         cooperation.acceptance_date = cooperation.acceptance_date_fix
+#         cooperation.acceptance_date_fix_state = 1
+#     elif agree == 0:
+#         cooperation.acceptance_date_fix_state = 2
+#     cooperation.acceptance_date_fix = ''
+#     cooperation.save()
+
+#     return JsonResponse({'success': True})

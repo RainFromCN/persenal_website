@@ -38,6 +38,7 @@ class User(models.Model):
     name = models.CharField(max_length=20)
     password = models.CharField(max_length=20)
     login_times = models.IntegerField(default=0)  # 累计登录次数
+    last_login = models.DateTimeField(auto_now=True)  # 登录时间
 
     # 其他信息
     introduction = models.CharField(max_length=100, default='')  # 个人简介
@@ -45,7 +46,6 @@ class User(models.Model):
     bid_times = models.IntegerField(default=0)  # 竞标次数
     win_times = models.IntegerField(default=0)  # 中标次数
     pub_times = models.IntegerField(default=0)  # 发布需求次数
-    positive_times = models.IntegerField(default=0)  # 中标后得到好评的次数 
 
     def __str__(self):
         return f"[{self.user_id}]{self.name}"

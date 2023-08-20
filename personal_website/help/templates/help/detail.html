@@ -23,6 +23,10 @@
                 margin-bottom: 16px; 
                 color:#303133
             }
+
+            body {
+                background-color: #F2F6FC;
+            }
         </style>
     </head>
 
@@ -161,7 +165,7 @@
             </el-dialog>
 
             <!--Header-->
-            <el-container style="border: 1px solid #eeeeee; box-shadow: 0 0 10px #eeeeee">
+            <el-container style="border: 1px solid #eeeeee; box-shadow: 0 0 10px #eeeeee; background-color: white;">
                 <el-row style="width: 100%;">
                     <el-col :span="2" >
                         <el-image style="width: 200px; height:auto;" src="{% static 'help/image/logo.png' %}"></el-image>
@@ -195,13 +199,13 @@
             </el-container>
 
             <el-container>
-                <el-main>
+                <el-main style="background-color: #F2F6FC;">
                     <el-row :gutter="20" type="flex" justify="center">
                         {% if follows.count != 0 %}
                         <el-col :span="12">
-                            <div style="background-color:blanchedalmon;">
+                            <div>
                                 {% for follow in follows %}
-                                <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin-bottom: 20px; padding: 20px;">
+                                <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); margin-bottom: 20px; padding: 20px; background-color: white;">
                                     <el-row type="flex" align="middle">
                                         <el-col :span="16">
                                             <div style="display: flex; align-items:center;">
@@ -220,7 +224,7 @@
                                             <el-col :span="16">
                                                 <span>中标次数 {{follow.user.win_times}}</span>
                                                 <el-divider direction="vertical"></el-divider>
-                                                <span>好评次数 {{follow.user.positive_times}}</span>
+                                                <span>竞方好评率 {{follow.rate}}%</span>
                                             </el-col>
                                             {% if username == rqst.publisher.name %}
                                             <el-col :span="8">
@@ -255,8 +259,23 @@
                                     </div>
                                     <div>
                                         <el-collapse>
-                                            <el-collapse-item title="服务商简介">
-                                                <div>{{follow.user.introduction}}</div>
+                                            <el-collapse-item title="竞方简介">
+                                                <div style="padding-left:20px; padding-right:20px;color:#606266">{{follow.user.introduction}}</div>
+                                            </el-collapse-item>
+                                            <el-collapse-item title="竞方评价">
+                                                {% for feedback in follow.feedbacks %}
+                                                <div style="padding-bottom:20px; padding-left:20px; padding-right:20px">
+                                                    <div style="display:flex;align-items: center; padding-top:10px; padding-bottom:10px;">
+                                                        <el-avatar :size="30" shape="square" :src="circleUrl"></el-avatar>
+                                                        <div style="margin-left: 10px; color:#606266">{{feedback.coop.follow.request.publisher.name}}</div>
+                                                        <el-divider direction="vertical"></el-divider>
+                                                        <div style="font-size: 13px; color:#909399">{{feedback.date|date:"Y-m-d"}}</div>
+                                                    </div>
+                                                    <div style="color:#606266; padding-left:40px">
+                                                        {{feedback.review}}
+                                                    </div>
+                                                </div>
+                                                {% endfor %}
                                             </el-collapse-item>
                                             <el-collapse-item title="服务流程">
                                                 <div style="height: 400px; padding: 20px;">
@@ -279,7 +298,7 @@
                         {% else %}
                         <el-col :span="12">
                         {% endif %}
-                            <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);">
+                            <div style="box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); background-color: white;">
                                 <div style="padding: 20px;">
                                     <el-row>
                                         <el-col :span="20">
@@ -304,21 +323,23 @@
 
                                 <div style="padding:20px">
                                     <el-collapse>
-                                        <el-collapse-item title="发布者信息" name="1">
+                                        <el-collapse-item title="需方信息" name="1">
                                             <div style="padding: 20px;">
-                                                <div style="display: flex; align-items:center;">
-                                                    <el-avatar :size="small" :src="circleUrl"></el-avatar>
+                                                <div style="display: flex; align-items:center; color:#606266">
+                                                    <el-avatar shape="square" :size="30" :src="circleUrl"></el-avatar>
                                                     <span style="margin-left: 10px; margin-right: 10px;">{{rqst.publisher.name}}</span>
                                                     <el-divider direction="vertical"></el-divider>
                                                     <span style="font-size: 12px; margin-left: 10px;">共发布 {{rqst.publisher.pub_times}} 个需求</span> 
                                                 </div>
+                                                {% if rqst.publisher.introduction %}
                                                 <div style="margin-top: 20px;">
-                                                    <div style="font-size: 13px">个人简介：{{rqst.publisher.introduction}}</div>
+                                                    <div style="font-size: 13px; color:#606266">个人简介：{{rqst.publisher.introduction}}</div>
                                                 </div>
+                                                {% endif %}
                                             </div>
                                         </el-collapse-item>
                                         <el-collapse-item title="详细需求" name="2">
-                                            <div style="padding: 20px; font-size: 13px">
+                                            <div style="padding: 20px; font-size: 13px; color:#606266">
                                                 <span>{{rqst.content}}</span>
                                             </div>
                                         </el-collapse-item>
@@ -542,7 +563,7 @@
                                     message: '竞标成功',
                                     type: 'success',
                                 })
-                                this.bid_visible = false;
+                                location.reload()
                             }
                         })
                     }

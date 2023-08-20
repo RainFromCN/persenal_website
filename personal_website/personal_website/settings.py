@@ -25,11 +25,21 @@ SECRET_KEY = 'django-insecure-%+foay6e%m8l99)8=q--++r@0-1h5*f_bk44$)jc5(4+$#a9of
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['101.200.77.84', '0.0.0.0:8000', 'localhost', '127.0.0.1']
+MY_SITE = 'localhost:8000'
+CHAT_SERVER_SITE = 'localhost:8001'
+SHARE_SERVER_SITE = 'localhost:8002'
+
+ALLOWED_HOSTS = [
+    '101.200.77.84',
+    'localhost', 
+    '127.0.0.1', 
+    'a719-49-65-148-2.ngrok-free.app', # 环回测试地址，对应端口8000
+    '22ef-49-65-148-2.ngrok-free.app', # chat 服务器
+    'ea81-49-65-148-2.ngrok-free.app' # share 服务器
+    ]
 
 
 # Application definition
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
