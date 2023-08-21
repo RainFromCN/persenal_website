@@ -1,6 +1,6 @@
 # URL patterns in polls/urls.py
 from django.urls import path
-from . import views, chat, share, buy, backend
+from . import views, chat, share, buy, backend, transmit
 
 app_name = "help"
 
@@ -28,6 +28,7 @@ urlpatterns = [
     path("remove/chat_msgs/", chat.remove_chat_msgs, name='remove_chat_msgs'),
     path("remove/appeal/", views.remove_appeal, name="remove_appeal"),
     path("share/<str:room>/", share.share, name='share'),
+    path("transmit/<str:room>/", transmit.transmit, name='transmit'),
     path("check/deposit/", buy.check_deposit),
     path("check/transfer/", buy.check_transfer),
     path("check/payment/", buy.check_payment),

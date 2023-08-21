@@ -395,22 +395,24 @@
                         </div>
                     </template>
                     <div style="padding-left: 20px; padding-right:20px; height: 80px; display:flex; align-items: center;">
-                        <div style="width: calc(100% - 130px)">
+                        <div style="width: calc(100% - 185px)">
                             <el-input v-model="chat_text" placeholder="请输入聊天内容" id="submitChatKey"></el-input>
                         </div>
-                        <div style="width: 130px; text-align: right;">
-                            <el-button-group>
-                                <el-tooltip class="item" effect="dark" content="发送信息" placement="top-end">
-                                    <el-button type="primary" style="border-radius: 10px 0px 0px 10px" id="submitChatBtn"><i class="el-icon-s-promotion"></i></el-button>
-                                </el-tooltip>
-                                {% with "cooperation."|addstr:cooperation.id as room %}
-                                <el-tooltip class="item" effect="dark" content="远程桌面共享 & 语音" placement="top-end">
-                                    <a href="{% url 'help:share' room %}" target="_blank"><el-button type="primary" style="border-radius: 0 10px 10px 0"><i class="el-icon-video-camera-solid"></i></el-button></a>
-                                </el-tooltip>
-                                {% endwith %}
-                            </el-button-group>
+                        <div style="width: 185px; display:flex; justify-content: right;">
+                            <el-tooltip class="item" effect="dark" content="发送信息" placement="top-end">
+                                <el-button type="primary" style="border-radius: 10px 0px 0px 10px;" id="submitChatBtn"><i class="el-icon-s-promotion"></i></el-button>
+                            </el-tooltip>
+                            {% with "cooperation."|addstr:cooperation.id as room %}
+                            <el-tooltip class="item" effect="dark" content="在线文件传输" placement="top-end">
+                                <a href="{% url 'help:transmit' room %}" target="_blank"><el-button type="primary" style="border:1px solid white; border-top-color:#409EFF; border-bottom-color: #409EFF; border-radius: 0;"><i class="el-icon-paperclip"></i></el-button></a>
+                            </el-tooltip>
+                            {% endwith %}
+                            {% with "cooperation."|addstr:cooperation.id as room %}
+                            <el-tooltip class="item" effect="dark" content="远程桌面共享 & 语音" placement="top-end">
+                                <a href="{% url 'help:share' room %}" target="_blank"><el-button type="primary" style="border-radius: 0 10px 10px 0"><i class="el-icon-video-camera-solid"></i></el-button></a>
+                            </el-tooltip>
+                            {% endwith %}
                         </div>
-
                     </div>
                 </div>
             </div>

@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width"/>
-    <title>{{follow.request.title}}</title>
+    <title>共享桌面&语音</title>
     <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
     <script src="https://unpkg.com/element-ui/lib/index.js"></script>
     <style>
@@ -112,21 +112,20 @@ const config = {
         }
     ]
 };
+/* 给共享桌面和语音使用的WebRTC应用 */
 const signaler = new WebSocket('ws://localhost:8002')
 const pc = new RTCPeerConnection(config)
 
 const contraints = { audio: false, video: true }
 
-
 var polite = false
 var makingOffer = false
 var ignoreOffer = false
 
-
 var local_video_stream = null
 var local_audio_stream = null
-
-
+ 
+ 
 const name_1 = "{{cooperation.follow.user.name}}"
 const name_2 = "{{cooperation.follow.request.publisher.name}}"
 

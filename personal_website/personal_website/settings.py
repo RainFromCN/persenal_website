@@ -28,6 +28,7 @@ DEBUG = True
 MY_SITE = 'localhost:8000'
 CHAT_SERVER_SITE = 'localhost:8001'
 SHARE_SERVER_SITE = 'localhost:8002'
+TRANS_SERVER_SITE = 'localhost:8003'
 
 ALLOWED_HOSTS = [
     '101.200.77.84',

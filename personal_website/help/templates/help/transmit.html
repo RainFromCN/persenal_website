@@ -1,0 +1,264 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width"/>
+    <title>在线文件传输</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+</head>
+<body>
+    <div id="app">
+        <el-button ref="recv_btn" @click="recv" disabled>Button</el-button>
+        <input type="file" ref="file" multiple>
+        <a ref="link">下载</a>
+    </div>
+</body>
+<script src="https://unpkg.com/vue@2/dist/vue.js"></script>
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+
+
+const options = { ordered: true,  maxRetransmits: 30 }
+
+
+/* 信令服务器 */
+const signaler = new WebSocket("ws://localhost:8003")
+
+
+/* Peer Connection 和数据通道 */
+const pc = new RTCPeerConnection()
+var ldc = null
+var rdc = null
+
+
+/* 有关接收数据 */ 
+var recv_buff = []
+var recv_size = 0 
+
+
+/* 文件元信息 */
+var file_size = null
+var file_name = null
+
+/* 状态变量 */
+var makingOffer = false
+var ignoreOffer = false
+var number = null // 房间人数
+var polite = true
+
+
+new Vue({
+    el: '#app',
+    data: function() {
+        return {
+
+        }
+    },
+
+    mounted() {
+
+        signaler.onmessage = async message => {
+            try {
+                var data = JSON.parse(message.data)
+
+                if (data.notify) {
+                    console.log("recv signal notify")
+                    /* 接受到房间人数信令 */
+                    current = parseInt(data.notify.number)
+                    if (number !== null && current > number) {
+                        this.reset()
+                    }
+                    number = current
+                } else if (data.description) {
+                    console.log("recv signal description")
+                    /* 接受到 description */
+                    const offerCollision = 
+                        data.description.type === 'offer' &&
+                        (makingOffer || pc.signalingState !== 'stable')
+
+                    ignoreOffer = !polite && offerCollision
+                    if (ignoreOffer) {
+                        return
+                    }
+
+                    await pc.setRemoteDescription(data.description)
+                    if (data.description.type === 'offer') {
+                        await pc.setLocalDescription()
+                        signaler.send(JSON.stringify({ description: pc.localDescription }))
+                    }
+                } else if (data.candidate) {
+                    console.log("recv signal candidate")
+                    /* 接受到候选人 */
+                    try {
+                        await pc.addIceCandidate(data.candidate)
+                    } catch (err) {
+                        if (!ignoreOffer) {
+                            throw err
+                        }
+                    }
+                } else if (data.reject) {
+                    console.log("recv signal reject")
+                    /* 接受到拒绝入房消息 */
+                    this.$alert(data.reject.reason)
+                } else if (data.file) {
+                    /* 接受到文件发送请求 */
+                    console.log("recv signal file")
+                    this.$refs.recv_btn.disabled = false
+                    file_name = data.file.name
+                    file_size = data.file.size
+                } else if (data.recv) {
+                    /* 收到同意接受文件命令 */
+                    console.log("recv signal recv")
+                    var file = this.$refs.file.files[0]
+                    this.send(file)
+                }
+
+            } catch (err) {
+                console.error(err)
+            }
+        }
+
+        signaler.onopen = async () => {
+            console.log("signaler.onopen")
+            await this.entry()
+        }
+
+        /* 接受到远端data channel的请求 */
+        pc.ondatachannel = (event) => {
+            console.log("pc.ondatachannel")
+            rdc = event.channel
+
+            rdc.onmessage = (event) => {
+                console.log("rdc.onmessage")
+                /* 接受到远端来的数据 */
+                recv_buff.push(event.data)
+                recv_size += event.data.byteLength
+
+                /* 判断是否已经接收完毕 */
+                if (recv_size === file_size) {
+
+                    /* 创建文件 */
+                    var recv = new Blob(recv_buff, {type: 'application/octet-stream'})
+                    recv_buff = []
+                    recv_size = 0
+
+                    /* 使用DOM更改HTML页面 */
+                    this.$refs.link.href = URL.createObjectURL(recv)
+                    this.$refs.link.download = file_name
+                    this.$refs.link.textContent = `Click to download '${file_name}' (${file_size} bytes)`
+                    this.$refs.link.style.display = 'block'
+                }
+            }
+
+            rdc.onopen = (event) => {
+                if (rdc) {
+                    console.log("rdc.onopen")
+                    /* 有文件传入 */
+                }
+            }
+
+            rdc.onclose = (event) => {
+                if (rdc) {
+                    console.log("rdc.onclose")
+                    /* 对方关闭传送连接 */
+                }
+            }
+        }
+
+        // 有码流可以发送给远端时触发
+        pc.onicecandidate = ({ candidate }) => signaler.send(JSON.stringify({ candidate }))
+
+        /* 初始化ldc */
+        this.reinit_ldc()
+    
+        /* 有文件进行传输则传输 */
+        this.$refs.file.addEventListener('change', () => {
+            var file = this.$refs.file.files[0]
+
+            /* 获取元数据 */
+            signaler.send(JSON.stringify({ file: { name: file.name, size: file.size } }))
+        })
+
+        /* 关闭页面时发送退出信令 */
+        window.addEventListener("beforeunload", async event => this.exit())
+    },
+
+    methods: {
+        async reset() {
+            console.log("reset")
+            try {
+                /* 重新启动ldc连接 */
+                this.reinit_ldc()
+
+                /* 开始握手 */
+                makingOffer = true
+                await pc.setLocalDescription()
+                signaler.send(JSON.stringify({ description: pc.localDescription }))
+            } catch (err) {
+                console.log(err)
+            } finally {
+                makingOffer = false
+            }
+        },
+
+        async entry() {
+            console.log("entry")
+            await signaler.send(JSON.stringify({ entry: {user: "{{usr.name}}", room: "cooperation." + "{{cooperation.id}}"} }))
+        },
+
+        async exit() {
+            console.log("exit")
+            await ldc.close()
+            await pc.close()
+            await signaler.close()
+        },
+
+        async send(file) {
+            console.log("send")
+            var offset = 0 // 偏移量
+            var chunk_size = 16384 // 数据块大小
+
+            file_reader = new FileReader()
+            file_reader.onload = e => {
+                console.log("file_reader.onload")
+                ldc.send(e.target.result)
+                offset += e.target.result.byteLength
+                if (offset < file.size) {
+                    read_slice(offset)
+                }
+            }
+
+            var read_slice = o => {
+                const slice = file.slice(offset, o + chunk_size)
+                file_reader.readAsArrayBuffer(slice)
+            }
+
+            read_slice(0)
+        },
+
+        /* 重新初始化LDC */
+        reinit_ldc() {
+            console.log("reinit_ldc")
+            if (ldc && ldc.readyState !== 'open') { ldc.close() }
+            ldc = pc.createDataChannel("dc", options)
+            ldc.onopen = e => console.log("ldc.onopen")
+            ldc.onclose = e => console.log("ldc.onclose")
+        },
+
+        /* 当点击按钮确认传输 */
+        recv() {
+            console.log("recv")
+            this.$refs.recv_btn.disabled = true
+            signaler.send(JSON.stringify({ 'recv': true }))
+        }
+    }
+})
+
+
+</script>
+<script src="{% static 'help/javascript/adapter-latest.js' %}"></script>
+</html>

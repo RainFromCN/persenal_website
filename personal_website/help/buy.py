@@ -300,9 +300,6 @@ def get_pay_link(request):
     out_trade_no = f"{username}.cooperation.{coop_id}.step.{coop.active}.payment"
     amount = f"{price:.2f}"
 
-    print(out_trade_no)
-    print(amount)
-
     try:
         # 向支付宝申请二维码
         res = ALIPAY.api_alipay_trade_page_pay(
