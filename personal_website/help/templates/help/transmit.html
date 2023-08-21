@@ -8,12 +8,50 @@
     <title>在线文件传输</title>
     <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
     <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <style>
+        * {padding: 0; margin: 0}
+    </style>
 </head>
 <body>
     <div id="app">
-        <el-button ref="recv_btn" @click="recv" disabled>Button</el-button>
-        <input type="file" ref="file" multiple>
-        <a ref="link">下载</a>
+        <template>
+            <el-tabs v-model="active_function" style=" padding:20px;">
+                <el-tab-pane label="发送" name="first">
+                    <div style="text-align: center; margin-top:20px">
+                        <el-upload action="" drag :multiple="false" :before-upload="on_file_selected" :show-file-list="false" :disabled="upload_disable">
+                            <i class="el-icon-upload"></i>
+                            <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
+                            <div class="el-upload__tip" slot="tip">每次仅能传一个文件，文件大小无限制</div>
+                        </el-upload>
+                    </div>
+                    <div v-if="selected_file" style="margin-top: 100px; text-align: center;">
+                        <span style="font-size:14px; color:#606266" v-html="selected_file.name"></span>
+                        <span style="font-size:13px; color:#909399; margin-left:20px">大小</span>
+                        <span style="font-size:13px; color:#909399" v-html="(selected_file.size / 1024 / 1024).toFixed(2)"></span>
+                        <span style="font-size:13px; color:#909399">MB</span>
+                        <div style="margin-top:10px">
+                            <span v-if="send_percent === 0" style="font-size:13px; color:#909399">等待对方接收</span>
+                            <span v-else-if="send_percent === 100" style="font-size:13px; color:#909399">传输完成</span>
+                            <span v-else style="font-size:13px; color:#909399">正在传输</span>
+                        </div>
+                        <el-progress :percentage="send_percent"></el-progress>                    
+                    </div>
+                </el-tab-pane>
+                <el-tab-pane label="接收" name="second">
+                    <div v-if="file_name" style="text-align: center; margin-top: 20px">
+                        <span style="font-size:14px; color:#606266" v-html="file_name"></span>
+                        <span style="font-size:13px; color:#909399; margin-left:20px">大小</span>
+                        <span style="font-size:13px; color:#909399" v-html="(file_size / 1024 / 1024).toFixed(2)"></span>
+                        <span style="font-size:13px; color:#909399">MB</span>
+                        <el-progress :percentage="recv_percent"></el-progress>
+                        <div style="margin-top: 10px">
+                            <el-button v-show="recv_percent !== 100" @click="recv_btn_click_callback" type="primary" :size="'small'">接收文件</el-button>
+                            <a ref="down_link" v-show="recv_percent === 100"><el-button ref="down_btn" type="primary" :size="'small'">另存为</el-button></a>
+                        </div>
+                    </div>
+                </el-tab-pane>
+            </el-tabs>
+        </template>
     </div>
 </body>
 <script src="https://unpkg.com/vue@2/dist/vue.js"></script>
@@ -35,16 +73,6 @@ var ldc = null
 var rdc = null
 
 
-/* 有关接收数据 */
-var send_buff = []
-var recv_buff = []
-var recv_size = 0 
-
-
-/* 文件元信息 */
-var file_size = null
-var file_name = null
-
 /* 状态变量 */
 var makingOffer = false
 var ignoreOffer = false
@@ -52,11 +80,28 @@ var number = null // 房间人数
 var polite = true
 
 
+/* 有关接收数据 */
+var recv_buff = []
+var recv_size = 0
+
+
 new Vue({
     el: '#app',
     data: function() {
         return {
+            /* 文件元数据 */
+            file_name: null,
+            file_size: null,
+            selected_file: null,
 
+            /* 状态记录 */
+            recv_percent: 0,
+            send_percent: 0,
+
+            /* DOM控制 */
+            upload_disable: false,
+
+            active_function: "first",
         }
     },
 
@@ -70,6 +115,9 @@ new Vue({
                     console.debug("recv signal notify")
                     /* 接受到房间人数信令 */
                     current = parseInt(data.notify.number)
+                    if (number === 2 && current === 1 && (ldc || rdc)) { 
+                        this.$alert('对方下线，传输被迫中止').then(() => location.reload())
+                    }
                     number = current
                 } else if (data.description) {
                     console.debug("recv signal description")
@@ -106,9 +154,11 @@ new Vue({
                     /* 接受到文件发送请求 */
                     console.debug("recv signal file")
                     this.be_connect()
-                    this.$refs.recv_btn.disabled = false
-                    file_name = data.file.name
-                    file_size = data.file.size
+                    this.file_name = data.file.name
+                    this.file_size = data.file.size
+                    this.recv_percent = 0
+                    this.recv_buff = []
+                    this.recv_size = 0
                 } else if (data.recv) {
                     /* 收到同意接受文件命令 */
                     console.debug("recv signal recv")
@@ -127,14 +177,6 @@ new Vue({
             console.debug("signaler.onopen")
             await this.entry()
         }
-    
-        /* 有文件进行传输则传输 */
-        this.$refs.file.addEventListener('change', () => {
-            var file = this.$refs.file.files[0]
-
-            /* 获取元数据 */
-            signaler.send(JSON.stringify({ file: { name: file.name, size: file.size } }))
-        })
 
         /* 关闭页面时发送退出信令 */
         window.addEventListener("beforeunload", async event => this.exit())
@@ -142,6 +184,8 @@ new Vue({
 
     methods: {
         async connect() {
+            this.upload_disable = true
+
             /* 第一步：创建RTC conn 并设置回调函数 */
             pc = new RTCPeerConnection()
             pc.onicecandidate = ({ candidate }) => signaler.send(JSON.stringify({ candidate }))
@@ -151,8 +195,7 @@ new Vue({
             ldc.onopen = (e) => {
                 console.debug("ldc.onopen")
                 /* 连接成功之后开始发送文件 */
-                var file = this.$refs.file.files[0]
-                this.send(file)
+                this.send(this.selected_file)
             }
             ldc.onclose = (e) => console.debug("ldc.onclose")
         
@@ -169,6 +212,8 @@ new Vue({
         },
 
         be_connect() {
+            this.upload_disable = true
+
             /* 第一步：创建RTC conn并设置回调函数 */
             pc = new RTCPeerConnection()
             pc.ondatachannel = (event) => {
@@ -180,24 +225,26 @@ new Vue({
                     /* 接受到远端来的数据 */
                     recv_buff.push(event.data)
                     recv_size += event.data.byteLength
+                    this.recv_percent = ((recv_size / this.file_size) * 100) | 0
 
                     /* 判断是否已经接收完毕 */
-                    if (recv_size === file_size) {
+                    if (recv_size === this.file_size) {
 
                         /* 创建文件 */
                         var recv = new Blob(recv_buff, {type: 'application/octet-stream'})
-                        recv_buff = []
-                        recv_size = 0
 
                         /* 使用DOM更改HTML页面 */
-                        this.$refs.link.href = URL.createObjectURL(recv)
-                        this.$refs.link.download = file_name
-                        this.$refs.link.textContent = `Click to download '${file_name}' (${file_size} bytes)`
-                        this.$refs.link.style.display = 'block'
+                        this.$refs.down_link.download = this.file_name
+                        this.$refs.down_link.href = URL.createObjectURL(recv)
 
                         /* 通知对方关闭RTC链接 */
                         signaler.send(JSON.stringify({ done: {} }))
-                    }
+
+                        /* 清理资源 */
+                        recv_buff = []
+                        recv_size = 0
+                        this.disconnect()
+                    } 
                 }
 
                 rdc.onopen = (event) => {
@@ -217,10 +264,11 @@ new Vue({
         },
 
         disconnect() {
+            console.debug("disconnect")
             if (ldc) { ldc.close(); ldc = null }
             if (rdc) { rdc.close(); rdc = null }
             if (pc) { pc.close(); pc = null }
-
+            this.upload_disable = false
         },
 
         async entry() {
@@ -232,7 +280,7 @@ new Vue({
         async exit() {
             /* 通知信令服务器离开房间 */
             console.debug("exit")
-            disconnect()
+            this.disconnect()
             await signaler.close()
         },
 
@@ -241,33 +289,54 @@ new Vue({
             console.debug("send")
             var offset = 0 // 偏移量
             var chunk_size = 16384 // 数据块大小
-            send_buff = []
 
             file_reader = new FileReader()
             file_reader.onload = e => {
                 console.debug("file_reader.onload")
-                send_buff.push(e.target.result)
-                // ldc.send(e.target.result)
+                ldc.send(e.target.result)
                 
                 offset += e.target.result.byteLength
+
+                this.send_percent = ((offset / this.selected_file.size + 1e-6) * 100) | 0
                 if (offset < file.size) {
                     read_slice(offset)
                 }
             }
 
             var read_slice = o => {
-                const slice = file.slice(offset, o + chunk_size)
-                file_reader.readAsArrayBuffer(slice)
+                if (ldc.bufferedAmount > ldc.bufferedAmountLowThreshold) {
+                    ldc.onbufferedamountlow = () => {
+                        ldc.onbufferedamountlow = null
+                        read_slice(o)
+                    }
+                } else {
+                    const slice = file.slice(offset, o + chunk_size)
+                    file_reader.readAsArrayBuffer(slice)
+                }
             }
 
             read_slice(0)
         },
 
-        recv() {
+        recv_btn_click_callback() {
             /* 发送同意数据传输的信令 */
-            console.debug("recv")
-            this.$refs.recv_btn.disabled = true
+            console.debug("recv_btn_click_callback")
             signaler.send(JSON.stringify({ recv: {} }))
+        },
+
+        on_file_selected(file) {
+            /* 检查人数是否够 */
+            if (number !== 2) {
+                this.$alert('对方不在线，无法进行在线传输')
+                return
+            }
+
+            /* 发送文件元数据 */
+            console.debug("on_file_selected")
+            this.selected_file = file
+            this.send_percent = 0
+            signaler.send(JSON.stringify({ file: { name: file.name, size: file.size } }))
+            return false; // 阻止自动上传
         },
     }
 })

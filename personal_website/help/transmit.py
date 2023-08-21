@@ -7,8 +7,10 @@ import threading
 from django.shortcuts import render
 from django.conf import settings
 from .models import User, Cooperation
+from django.views.decorators.csrf import csrf_exempt
 
 
+@csrf_exempt
 def transmit(request, room):
     context = {}
     if 'username' in request.session:
@@ -110,15 +112,17 @@ async def handle_message(websocket, path):
             for client in (client for u, client in connected_room[room].items() if u != user):
                 await client.send(message)
 
+
         except websockets.exceptions.ConnectionClosed:
+            
+            # 通知其他人目前房间在线人数
+            mutex[room].acquire()
+            count[room] -= 1
+            await notify_online(meta, count[room])
+            mutex[room].release()
+
             # 连接正常关闭或者异常关闭
             await handle_leave(meta)
-
-            # 通知其他人目前房间在线人数
-            # mutex[room].acquire()
-            # count[room] -= 1
-            # await notify_online(meta, count[room])
-            # mutex[meta[room]].release()
 
             break
 
