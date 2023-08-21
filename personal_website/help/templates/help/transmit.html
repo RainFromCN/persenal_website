@@ -31,7 +31,7 @@ const signaler = new WebSocket("ws://localhost:8003")
 
 /* Peer Connection 和数据通道 */
 const pc = new RTCPeerConnection()
-var ldc = null
+var ldc = pc.createDataChannel(options)
 var rdc = null
 
 
@@ -172,8 +172,10 @@ new Vue({
         // 有码流可以发送给远端时触发
         pc.onicecandidate = ({ candidate }) => signaler.send(JSON.stringify({ candidate }))
 
-        /* 初始化ldc */
-        this.reinit_ldc()
+        // /* 初始化ldc */
+        // this.reinit_ldc()
+        ldc.onopen = e => console.log("ldc.onopen")
+        ldc.onclose = e => console.log("ldc.onclose")
     
         /* 有文件进行传输则传输 */
         this.$refs.file.addEventListener('change', () => {
@@ -191,9 +193,6 @@ new Vue({
         async reset() {
             console.log("reset")
             try {
-                /* 重新启动ldc连接 */
-                this.reinit_ldc()
-
                 /* 开始握手 */
                 makingOffer = true
                 await pc.setLocalDescription()
@@ -240,21 +239,21 @@ new Vue({
             read_slice(0)
         },
 
-        /* 重新初始化LDC */
-        reinit_ldc() {
-            console.log("reinit_ldc")
-            if (ldc && ldc.readyState !== 'open') { ldc.close() }
-            ldc = pc.createDataChannel("dc", options)
-            ldc.onopen = e => console.log("ldc.onopen")
-            ldc.onclose = e => console.log("ldc.onclose")
-        },
+        // /* 重新初始化LDC */
+        // reinit_ldc() {
+        //     console.log("reinit_ldc")
+        //     if (ldc && ldc.readyState !== 'open') { ldc.close() }
+        //     ldc = pc.createDataChannel("dc", options)
+        //     ldc.onopen = e => console.log("ldc.onopen")
+        //     ldc.onclose = e => console.log("ldc.onclose")
+        // },
 
         /* 当点击按钮确认传输 */
         recv() {
             console.log("recv")
             this.$refs.recv_btn.disabled = true
             signaler.send(JSON.stringify({ 'recv': true }))
-        }
+        },
     }
 })
 
